@@ -96,7 +96,7 @@ half4 LLToonSpecularLighting(
     half4 finalspecularColor = half4(0,0,0,0);
 
     half directSpecular = DirectBRDFSpecular(brdfData, llToonInputData.baseInputData.normalWS, light.direction, llToonInputData.baseInputData.viewDirectionWS);
-    half surfaceSpecular = chara ? 1 : brdfData.specular; //キャラのマテリアルは少し強めにspecular出したい(マスクはここでやってるし)
+    half surfaceSpecular = chara ? 1 : brdfData.specular.r; //キャラのマテリアルは少し強めにspecular出したい(マスクはここでやってるし)
     half specular = surfaceSpecular * directSpecular  * specularMask * _SpecularIntensity;
     half specularHigh = surfaceSpecular * directSpecular * specularMaskHigh * _SpecularIntensityHigh;
     finalSpecularRadiance = pow(saturate(finalSpecularRadiance), _SpecContrast);
@@ -112,7 +112,7 @@ half4 LLToonSpecularLighting(
 #if ENABLE_TIGHTS
     // 正面ラインを強制加算
     finalspecularColor = specColor * specular * finalSpecularRadiance;
-    finalspecularColor.rgb = specColor * specularHigh;
+    finalspecularColor.rgb = specColor.rgb * specularHigh;
 #endif
     
 //#endif

@@ -427,7 +427,7 @@ float sampleSceneDepth(float2 uv)
     //float sceneDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, my_linear_clamp_sampler, uv);
     //return Linear01Depth(sceneDepth, _ZBufferParams) * _ProjectionParams.z;
 
-    float depth = SAMPLE_TEXTURE2D_X(_CameraDepthTexture, sampler_PointClamp, uv);
+    float depth = SAMPLE_TEXTURE2D_X(_CameraDepthTexture, sampler_PointClamp, uv).r;
     return Linear01Depth(depth, _ZBufferParams);
 }
 
@@ -441,9 +441,7 @@ inline void InitializeStandardSurfaceDataLL(float2 uv, out SurfaceData outSurfac
     float specularMask = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, uv).g;
     outSurfaceData.metallic = _Metallic * specularMask;
     outSurfaceData.specular = _Metallic.rrr * specularMask;
-    outSurfaceData.occlusion = 
-
-    outSurfaceData.smoothness = albedoAlpha * _Smoothness;
+    outSurfaceData.smoothness = albedoAlpha.a * _Smoothness;
     float2 screenPos = ComputeScreenPos(screenPosData / screenPosData.w).xy;
     float sceneDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, my_linear_clamp_sampler, screenPos);
     half depth = Linear01Depth(sceneDepth, _ZBufferParams);

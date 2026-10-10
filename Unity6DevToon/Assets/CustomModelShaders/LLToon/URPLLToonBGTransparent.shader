@@ -332,8 +332,6 @@ Shader "Universal Render Pipeline/URPLLToonBGTransparent"
             
             #include "LLToonForwardLighting.hlsl"
 
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
@@ -363,7 +361,6 @@ Shader "Universal Render Pipeline/URPLLToonBGTransparent"
             #pragma vertex VertexBase
             #pragma fragment LLFragmentChara
             // make fog work
-            #pragma multi_compile_fog
 
             /*
              *　いつか使うかも

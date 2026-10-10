@@ -355,8 +355,6 @@ Shader "Universal Render Pipeline/URPLLToon"
             
             HLSLPROGRAM
 
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
@@ -394,8 +392,6 @@ Shader "Universal Render Pipeline/URPLLToon"
             
             #pragma vertex VertexBase
             #pragma fragment LLFragmentChara
-            // make fog work
-            #pragma multi_compile_fog
             ENDHLSL
         }
 
@@ -541,7 +537,7 @@ Shader "Universal Render Pipeline/URPLLToon"
                                       _ShadowArea + _ShadowSmooth,
                                       ndotl);
 
-                float3 col1 = lerp(_ShadowMultColor.rgb, baseColor, s1 * (1.0 - _StencilShadowIntencity));
+                float3 col1 = lerp(_ShadowMultColor.rgb, baseColor.rgb, s1 * (1.0 - _StencilShadowIntencity));
 
 
                 //-----------------------------------------------------

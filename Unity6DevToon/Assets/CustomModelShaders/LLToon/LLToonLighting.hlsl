@@ -29,7 +29,7 @@ inline float4 SampleLLBaseColor(float2 uv, float3 normalWS, float3 viewDirWS)
 {
     float4 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv) * _BaseColor;
 #if defined(ENABLE_TIGHTS)
-    baseColor.rgb = ApplyTightsBase(baseColor, normalWS, viewDirWS);
+    baseColor.rgb = ApplyTightsBase(baseColor.rgb, normalWS, viewDirWS);
 #endif
     return baseColor;
 }

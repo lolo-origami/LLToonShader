@@ -22,7 +22,7 @@ half4 LLToonBloom(half baseLightingColorAlpha,half rimAlpha, half3 darkShadowCol
 {
     half4 bloom = half4(0,0,0,0);
     // 暗影色ベースで光色を作る
-    bloom.rgb = pow(darkShadowColor, _DarkEmissionIntensity) * _Emission * emissionMask;
+    bloom.rgb = pow(max(darkShadowColor, 0.0h), _DarkEmissionIntensity) * _Emission * emissionMask;
 
     // 強度は Base と Rim の寄与度をまとめる
     bloom.a = (baseLightingColorAlpha + rimAlpha/* + RimDS.a*/);

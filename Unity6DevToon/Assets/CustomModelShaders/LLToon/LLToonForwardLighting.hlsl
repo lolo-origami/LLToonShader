@@ -268,8 +268,7 @@ Varyings VertexBase(Attributes input)
     }
 #endif
     
-    output.binormal = normalize(cross(output.normalWS.xyz, input.tangentOS.xyz) * input.tangentOS.w * unity_WorldTransformParams.w);
-    output.binormal = mul(unity_ObjectToWorld, output.binormal);
+    output.binormal = normalize(cross(output.normalWS.xyz, normalInput.tangentWS) * input.tangentOS.w * unity_WorldTransformParams.w);
     output.normalOS = input.normalOS;
 
     OUTPUT_LIGHTMAP_UV(input.staticLightmapUV, unity_LightmapST, output.staticLightmapUV);
