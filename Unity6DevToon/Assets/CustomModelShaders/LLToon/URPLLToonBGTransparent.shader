@@ -168,7 +168,7 @@ Shader "Universal Render Pipeline/URPLLToonBGTransparent"
 
         [Header(Alpha)]
         [Toggle(ENABLE_ALPHA_CLIPPING)]_AlphaClip ("_AlphaClip", Float) = 0
-        //_Cutoff ("_Cutoff (Alpha Cutoff)", Range(0.0, 1.0)) = 0.5        
+        _Cutoff ("_Cutoff (Alpha Cutoff)", Range(0.0, 1.0)) = 0.5        
     
         //[HideInInspector][NoScaleOffset]unity_Lightmaps("unity_Lightmaps", 2DArray) = "" {}
         //[HideInInspector][NoScaleOffset]unity_LightmapsInd("unity_LightmapsInd", 2DArray) = "" {}

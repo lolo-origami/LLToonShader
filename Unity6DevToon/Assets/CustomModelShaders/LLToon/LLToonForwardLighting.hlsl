@@ -25,12 +25,9 @@ struct Varyings
 
     float3 positionWS                  : TEXCOORD1;    // xyz: posWS
 
+    half3 normalWS                     : TEXCOORD2;
     #ifdef _NORMALMAP
-        half4 normalWS                 : TEXCOORD2;    // xyz: normal, w: viewDir.x
-        half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: viewDir.y
-        half4 bitangentWS              : TEXCOORD4;    // xyz: bitangent, w: viewDir.z
-    #else
-        half3  normalWS                : TEXCOORD2;
+        half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: handedness
     #endif
 
     #ifdef _ADDITIONAL_LIGHTS_VERTEX
@@ -138,9 +135,12 @@ void InitializeLLToonInputData(Varyings input, half3 normalTS, out LLToonInputDa
     half3 viewDirWS = GetWorldSpaceNormalizeViewDir(inputData.baseInputData.positionWS);
     
     #ifdef _NORMALMAP
-        float sgn = input.tangentWS.w;      // should be either +1 or -1
-        float3 bitangent = sgn * cross(input.normalWS.xyz, input.tangentWS.xyz);
-        inputData.baseInputData.tangentToWorld = half3x3(input.tangentWS.xyz, bitangent.xyz, input.normalWS.xyz);
+        // Rebuild an orthonormal basis after interpolation and face-normal correction.
+        float3 normalWS = NormalizeNormalPerPixel(input.normalWS);
+        float3 tangentWS = SafeNormalize(input.tangentWS.xyz - normalWS * dot(normalWS, input.tangentWS.xyz));
+        float sgn = input.tangentWS.w < 0.0 ? -1.0 : 1.0;
+        float3 bitangent = sgn * cross(normalWS, tangentWS);
+        inputData.baseInputData.tangentToWorld = half3x3(tangentWS, bitangent, normalWS);
         inputData.baseInputData.normalWS = TransformTangentToWorld(normalTS, inputData.baseInputData.tangentToWorld);
     #else
         
@@ -240,13 +240,10 @@ Varyings VertexBase(Attributes input)
     output.positionCS = vertexInput.positionCS;
     output.screenPos = output.positionCS;
 
-#ifdef _NORMALMAP
-    half3 viewDirWS = GetWorldSpaceViewDir(vertexInput.positionWS);
-    output.normalWS = half4(normalInput.normalWS, viewDirWS.x);
-    output.tangentWS = half4(normalInput.tangentWS, viewDirWS.y);
-    output.bitangentWS = half4(normalInput.bitangentWS, viewDirWS.z);
-#else
     output.normalWS = NormalizeNormalPerVertex(normalInput.normalWS);
+#ifdef _NORMALMAP
+    half tangentSign = input.tangentOS.w * unity_WorldTransformParams.w;
+    output.tangentWS = half4(normalInput.tangentWS, tangentSign);
 #endif
     
 #if ENABLE_FACE_CHEEK

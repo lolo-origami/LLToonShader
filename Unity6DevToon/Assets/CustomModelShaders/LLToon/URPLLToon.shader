@@ -360,6 +360,7 @@ Shader "Universal Render Pipeline/URPLLToon"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fog
             
+            #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local_fragment ENABLE_ALPHA_CLIPPING
             #pragma shader_feature_local_fragment ENABLE_BLOOM_MASK
             #pragma shader_feature_local_fragment ENABLE_FACE_SHADOW_MAP

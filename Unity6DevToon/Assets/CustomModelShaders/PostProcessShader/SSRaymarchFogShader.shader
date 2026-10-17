@@ -52,8 +52,10 @@ Shader "Hidden/SSRaymarchFogShader"
                     float shadow = SAMPLE_TEXTURE2D_SHADOW(_MainLightShadowmapTexture, sampler_MainLightShadowmapTexture, shadowCoord);
                     if (shadow >= 1) alpha += step * 0.2;
 #endif
-                    alpha += step * 0.02;
-                    t += step;
+                    // 最後のステップを物体表面、または最大距離までに収める。
+                    float stepLength = min(step, min(depth, _MaxDistance) - t);
+                    alpha += stepLength * 0.02;
+                    t += stepLength;
                 }
                 half4 result = float4(_MainLightColor.xyz * alpha, alpha);
                 result *= _FogIntensity;
@@ -64,20 +66,36 @@ Shader "Hidden/SSRaymarchFogShader"
             half4 Frag(Varyings input) : SV_Target
             {
                 float2 uv = input.texcoord;
-                float depth01 = SAMPLE_TEXTURE2D_X(_CameraDepthTexture, sampler_LinearClamp, uv).r;
-                float depth = LinearEyeDepth(depth01, _ZBufferParams);
-                // frustum からレイ方向を生成
-                float3 cornerLB = _CamFrustum[0].xyz;
-                float3 cornerLT = _CamFrustum[1].xyz;
-                float3 cornerRB = _CamFrustum[2].xyz;
-                float3 cornerRT = _CamFrustum[3].xyz;
-                float3 left = lerp(cornerLB, cornerLT, uv.y);
-                float3 right = lerp(cornerRB, cornerRT, uv.y);
-                float3 worldPos = lerp(left, right, uv.x);
-                float3 rayDir = normalize(worldPos - _CamWorldSpace.xyz);
-                float3 rayOrigin = _CamWorldSpace.xyz;
+                float rawDepth = SampleSceneDepth(uv);
 
-                return SimpleFogRaymarch(rayOrigin, rayDir, depth) * _FogColor;
+                // 透視投影カメラの視線を、遠平面上のワールド座標から復元する。
+#if UNITY_REVERSED_Z
+                float farDepth = 0.0;
+#else
+                float farDepth = 1.0;
+#endif
+                float3 farPositionWS = ComputeWorldSpacePosition(
+                    uv, farDepth, UNITY_MATRIX_I_VP);
+                float3 rayOrigin = _WorldSpaceCameraPos;
+                float3 rayDir = normalize(farPositionWS - rayOrigin);
+
+#if UNITY_REVERSED_Z
+                bool isSky = rawDepth <= 0.0;
+#else
+                bool isSky = rawDepth >= 1.0;
+#endif
+                float rayDistance = _MaxDistance;
+                if (!isSky)
+                {
+                    float eyeDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
+                    float3 rayDirVS = mul((float3x3)UNITY_MATRIX_V, rayDir);
+                    float forwardFactor = max(-rayDirVS.z, 1e-5);
+                    rayDistance = min(eyeDepth / forwardFactor, _MaxDistance);
+                }
+
+                half4 fog = SimpleFogRaymarch(rayOrigin, rayDir, rayDistance) * _FogColor;
+                fog.a = saturate(fog.a);
+                return fog;
             }
             #pragma vertex Vert
             #pragma fragment Frag
@@ -94,8 +112,9 @@ Shader "Hidden/SSRaymarchFogShader"
             {
                 half4 color = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, input.texcoord);
                 half4 fog = SAMPLE_TEXTURE2D_X(_FogTempTex, sampler_LinearClamp, input.texcoord);
-                color.rgb = color.rgb * (1 - fog.a) + fog.rgb * fog.a;
-                Blend(color, fog, _BlendIntensity, _BlendMode);
+                half opacity = saturate(fog.a) * saturate(_BlendIntensity);
+                half3 blended = Blend(color.rgb, fog.rgb, 1.0h, _BlendMode);
+                color.rgb = lerp(color.rgb, blended, opacity);
                 return color;
             }
 
