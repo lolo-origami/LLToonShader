@@ -1,4 +1,4 @@
-﻿#ifndef UNIVERSAL_LIT_INPUT_INCLUDED
+#ifndef UNIVERSAL_LIT_INPUT_INCLUDED
 #define UNIVERSAL_LIT_INPUT_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -16,23 +16,22 @@
 // NOTE: Lit系のInputをベースに
 CBUFFER_START(UnityPerMaterial)
 float4 _BaseMap_ST;
-//float4 _DetailAlbedoMap_ST;
+float4 _DetailAlbedoMap_ST;
 half4 _BaseColor;
-//half4 _SpecColor;
+half4 _SpecColor;
 half4 _EmissionColor;
 float _EnableAlphaClipping;
 half _Cutoff;
 half _Smoothness;
 half _Metallic;
 half _BumpScale;
-//half _Parallax;
-//half _OcclusionStrength;
+half _Parallax;
+half _OcclusionStrength;
 half _ClearCoatMask;
 half _ClearCoatSmoothness;
-//half _DetailAlbedoMapScale;
-//half _DetailNormalMapScale;
+half _DetailAlbedoMapScale;
+half _DetailNormalMapScale;
 half _Surface;
-sampler2D _CameraReflectionTexture;
 int _EnableMirror;
 float _ReflectIntensity;
 
@@ -195,7 +194,17 @@ float _GradPower;
 float _GradShift;
 */
 
+// Keep new properties at the end to preserve existing material offsets.
+float _LightDirContrast;
+float _LightDirMode;
+float _LightDirLowThreshold;
+float _LightDirHighThreshold;
+float _LightDirLowLevel;
+float _LightDirMidLevel;
+float _LightDirHighLevel;
+float _LightDirSoftness;
 CBUFFER_END
+sampler2D _CameraReflectionTexture;
 
 // NOTE: Do not ifdef the properties for dots instancing, but ifdef the actual usage.
 // Otherwise you might break CPU-side as property constant-buffer offsets change per variant.

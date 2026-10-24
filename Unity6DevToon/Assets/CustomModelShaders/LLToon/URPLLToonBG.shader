@@ -118,6 +118,14 @@ Shader "Universal Render Pipeline/URPLLToonBG"
         [HideInInspector][Toggle(ENABLE_HAIR_SPECULAR)] _EnableHairSpecular ("Enable Hair Specular", float) = 0
         [HideInInspector]_Sharpness("Sharpness", float) = 30
         _DiffuseIntensity("Diffuse Intensity", Range(0.0, 10.0)) = 1.0
+        _LightDirContrast("LightDirContrast", Range(1.0, 8.0)) = 1.0
+        [Enum(Continuous,0,ThreeSteps,1)] _LightDirMode("Light Direction Mode", Float) = 0
+        _LightDirLowThreshold("Low / Mid Threshold", Range(0.0, 1.0)) = 0.25
+        _LightDirHighThreshold("Mid / High Threshold", Range(0.0, 1.0)) = 0.65
+        _LightDirLowLevel("Low Light Level", Range(0.0, 4.0)) = 0.2
+        _LightDirMidLevel("Mid Light Level", Range(0.0, 4.0)) = 0.6
+        _LightDirHighLevel("High Light Level", Range(0.0, 4.0)) = 1.0
+        _LightDirSoftness("Light Boundary Softness", Range(0.0, 0.25)) = 0.0
         _SpecularIntensity("Specular Intensity", Range(0.0, 10.0)) = 0.5
         _SpecularIntensityHigh("Specular IntensityHigh", Range(0.0, 20.0)) = 0.5
         [HideInInspector]_SpecularIntensityShadow("Intensity", Range(0.0, 1.0)) = 0.5
@@ -313,7 +321,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "LLToonInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitDepthNormalsPass.hlsl"
             ENDHLSL
         }

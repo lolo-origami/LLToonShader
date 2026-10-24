@@ -31,9 +31,6 @@ ToonShadowFactor CalculateToonShadowFactor(
     ToonShadowFactor tsf;
                 
     float3 lightDirWS = normalize(light.direction.xyz);
-#if ENABLE_FACE_CHEEK
-    lightDirWS = normalize(light.direction.xyz + pos); //顔は常に一定の位置から照らす
-#endif
     // ★ 固定方向影が有効ならライト方向を上書き
     if (_EnableFixedDirShadow > 0.5)
     {

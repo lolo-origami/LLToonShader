@@ -77,6 +77,14 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         protected MaterialProperty HairHighlightTiltProperty { get; set; }        
         protected MaterialProperty SharpnessProperty { get; set; }
         protected MaterialProperty DiffuseIntensityProperty { get; set; }
+        protected MaterialProperty LightDirContrastProperty { get; set; }
+        protected MaterialProperty LightDirModeProperty { get; set; }
+        protected MaterialProperty LightDirLowThresholdProperty { get; set; }
+        protected MaterialProperty LightDirHighThresholdProperty { get; set; }
+        protected MaterialProperty LightDirLowLevelProperty { get; set; }
+        protected MaterialProperty LightDirMidLevelProperty { get; set; }
+        protected MaterialProperty LightDirHighLevelProperty { get; set; }
+        protected MaterialProperty LightDirSoftnessProperty { get; set; }
         protected MaterialProperty SpecularIntensityProperty { get; set; }
         protected MaterialProperty SpecularHighIntensityProperty { get; set; }
         protected MaterialProperty SpecularIntensityShadowProperty { get; set; }
@@ -265,6 +273,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             public static readonly GUIContent AOStrengthOptions = EditorGUIUtility.TrTextContent("AOStrength", "");   
             public static readonly GUIContent EnableSpecularOptions = EditorGUIUtility.TrTextContent("EnableSpecular", "");
             public static readonly GUIContent DiffuseIntensityOptions = EditorGUIUtility.TrTextContent("DiffuseIntensity", "");
+            public static readonly GUIContent LightDirContrastOptions = EditorGUIUtility.TrTextContent("LightDirContrast", "面の向きによる明暗差。1で従来の計算。値を上げるほどNdotLの0.5を基準に、明るい面はより明るく、暗い面はより暗くなります。");
             public static readonly GUIContent HairHighlightTiltOptions = new GUIContent("Hair Highlight Tilt (deg)");
             public static readonly GUIContent SpecularIntensityOptions = EditorGUIUtility.TrTextContent("SpeclarIntensity", "");
             public static readonly GUIContent SpecularHighIntensityOptions = EditorGUIUtility.TrTextContent("SpeclarHighIntensity", "");
@@ -436,10 +445,17 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         /// <param name="max"></param>
         /// <param name="prop"></param>
         static void DrawIntSliderValue(GUIContent styles, int min, int max, MaterialProperty prop)
-        {            
+        {
+            if (prop == null)
+                return;
+
+            bool previousMixedValue = EditorGUI.showMixedValue;
+            EditorGUI.showMixedValue = prop.hasMixedValue;
             EditorGUI.BeginChangeCheck();
-            prop.intValue= EditorGUILayout.IntSlider(styles, prop.intValue, min, max);
-            EditorGUI.EndChangeCheck();
+            int newValue = EditorGUILayout.IntSlider(styles, prop.intValue, min, max);
+            if (EditorGUI.EndChangeCheck())
+                prop.intValue = newValue;
+            EditorGUI.showMixedValue = previousMixedValue;
         }        
         
         /// <summary>
@@ -450,11 +466,17 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         /// <param name="max"></param>
         /// <param name="prop"></param>
         static void DrawFloatSliderValue(GUIContent styles, float min, float max, MaterialProperty prop)
-        {            
-            EditorGUI.BeginChangeCheck();
+        {
+            if (prop == null)
+                return;
+
+            bool previousMixedValue = EditorGUI.showMixedValue;
             EditorGUI.showMixedValue = prop.hasMixedValue;
-            prop.floatValue= EditorGUILayout.Slider(styles, prop.floatValue, min, max);
-            EditorGUI.EndChangeCheck();
+            EditorGUI.BeginChangeCheck();
+            float newValue = EditorGUILayout.Slider(styles, prop.floatValue, min, max);
+            if (EditorGUI.EndChangeCheck())
+                prop.floatValue = newValue;
+            EditorGUI.showMixedValue = previousMixedValue;
         }
         
         public override void FillAdditionalFoldouts(MaterialHeaderScopeList materialScopesList)
@@ -525,6 +547,14 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             HairHighlightTiltProperty = FindProperty("_HairHighlightTilt", properties, false);
             SharpnessProperty = FindProperty("_Sharpness", properties, false);
             DiffuseIntensityProperty = FindProperty("_DiffuseIntensity", properties, false);
+            LightDirContrastProperty = FindProperty("_LightDirContrast", properties, false);
+            LightDirModeProperty = FindProperty("_LightDirMode", properties, false);
+            LightDirLowThresholdProperty = FindProperty("_LightDirLowThreshold", properties, false);
+            LightDirHighThresholdProperty = FindProperty("_LightDirHighThreshold", properties, false);
+            LightDirLowLevelProperty = FindProperty("_LightDirLowLevel", properties, false);
+            LightDirMidLevelProperty = FindProperty("_LightDirMidLevel", properties, false);
+            LightDirHighLevelProperty = FindProperty("_LightDirHighLevel", properties, false);
+            LightDirSoftnessProperty = FindProperty("_LightDirSoftness", properties, false);
             SpecularIntensityProperty = FindProperty("_SpecularIntensity", properties, false);
             SpecularHighIntensityProperty = FindProperty("_SpecularIntensityHigh", properties, false);
             SpecularIntensityShadowProperty = FindProperty("_SpecularIntensityShadow", properties, false);
@@ -618,6 +648,28 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         public override void ValidateMaterial(Material material)
         {
             SetMaterialKeywords(material, LitGUI.SetMaterialKeywords, LLToonDetailGUI.SetMaterialKeywords);
+
+            // Shader assignment clears keywords before Inspector properties have been initialized.
+            // Restore LLToon features from this material, independently of Inspector drawing.
+            SetToggleKeyword(material, "_AlphaClip", "ENABLE_ALPHA_CLIPPING");
+            SetToggleKeyword(material, "_EnableMatCapSpecular", "ENABLE_MATCAP_SPECULAR");
+            SetToggleKeyword(material, "_EnableFaceCheek", "ENABLE_FACE_CHEEK");
+            SetToggleKeyword(material, "_EnableStencilShadowReceiver", "ENABLE_STENCILSHADOW_RECEIVER");
+            SetToggleKeyword(material, "_EnableStencilShadowProjector", "ENABLE_STENCILSHADOW_PROJECTOR");
+            SetToggleKeyword(material, "_EnableDarkInverseShadow", "ENABLE_INVERSE_SHADOW");
+            SetToggleKeyword(material, "_EnableFixedDirShadow", "ENABLE_FIXEDDIR_SHADOW");
+            SetToggleKeyword(material, "_EnableSpecular", "ENABLE_SPECULAR");
+            SetToggleKeyword(material, "_EnableHairSpecular", "ENABLE_HAIR_SPECULAR");
+            SetToggleKeyword(material, "_EnableMirror", "ENABLE_MIRROR");
+            SetToggleKeyword(material, "_EnableFlatGI", "ENABLE_FLAT_GI");
+            SetToggleKeyword(material, "_EnableStylizeGI", "ENABLE_STYLIZE_GI");
+            SetToggleKeyword(material, "_EnableEmissionOnly", "ENABLE_EMISSION_ONLY");
+            SetToggleKeyword(material, "_EnableRim", "ENABLE_RIM");
+            SetToggleKeyword(material, "_EnableEdgeRim", "ENABLE_EDGE_RIM");
+            SetToggleKeyword(material, "_EnableOutline", "ENABLE_OUTLINE");
+            SetToggleKeyword(material, "_EnableTights", "ENABLE_TIGHTS");
+            SetToggleKeyword(material, "_EnableEyebrowFloating", "ENABLE_EYEBROW_FLOATING");
+
             if (material.IsKeywordEnabled("ENABLE_MIRROR"))
             {
                 //Blendしない設定にする
@@ -627,17 +679,13 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             if (material.HasProperty("_BumpMap"))
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._NORMALMAP, material.GetTexture("_BumpMap"));
             
-            if (material.HasProperty("_EnableTights"))
-            {
-                bool enabled = material.GetFloat("_EnableTights") > 0.5f;
-                CoreUtils.SetKeyword(material, "ENABLE_TIGHTS", enabled);
-            }
-            
-            if (material.HasProperty("_EnableEyebrowFloating"))
-            {
-                bool enabled = material.GetFloat("_EnableEyebrowFloating") > 0.5f;
-                    CoreUtils.SetKeyword(material, "ENABLE_EYEBROW_FLOATING", enabled);
-            }
+        }
+
+        static void SetToggleKeyword(Material material, string propertyName, string keyword)
+        {
+            if (material.shader.keywordSpace.FindKeyword(keyword).isValid)
+                CoreUtils.SetKeyword(material, keyword,
+                    material.HasProperty(propertyName) && material.GetFloat(propertyName) > 0.5f);
         }
         
 #region Surface
@@ -831,8 +879,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 var mat = obj as Material;
                 if (mat == null) continue;
 
-                bool recv = mat.GetFloat("_EnableStencilShadowReceiver")  > 0.5f;
-                bool proj = mat.GetFloat("_EnableStencilShadowProjector") > 0.5f;
+                bool recv = mat.HasProperty("_EnableStencilShadowReceiver")
+                    && mat.GetFloat("_EnableStencilShadowReceiver") > 0.5f;
+                bool proj = mat.HasProperty("_EnableStencilShadowProjector")
+                    && mat.GetFloat("_EnableStencilShadowProjector") > 0.5f;
 
                 // 両方 ON の矛盾は禁止。Projector を優先
                 if (recv && proj)
@@ -1009,6 +1059,32 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             if (DiffuseIntensityProperty != null)
             {
                 DrawFloatSliderValue(CustomStyleLL.DiffuseIntensityOptions, 0, 10, DiffuseIntensityProperty);
+            }
+
+            if (LightDirModeProperty != null)
+                materialEditor.ShaderProperty(LightDirModeProperty, "Light Direction Mode");
+
+            bool mixedLightDirMode = LightDirModeProperty != null && LightDirModeProperty.hasMixedValue;
+            bool threeStepLighting = LightDirModeProperty != null && LightDirModeProperty.floatValue > 0.5f;
+            if ((!threeStepLighting || mixedLightDirMode) && LightDirContrastProperty != null)
+            {
+                DrawFloatSliderValue(CustomStyleLL.LightDirContrastOptions, 1, 8, LightDirContrastProperty);
+            }
+
+            if (threeStepLighting || mixedLightDirMode)
+            {
+                if (LightDirLowThresholdProperty != null)
+                    materialEditor.ShaderProperty(LightDirLowThresholdProperty, "Low / Mid Threshold");
+                if (LightDirHighThresholdProperty != null)
+                    materialEditor.ShaderProperty(LightDirHighThresholdProperty, "Mid / High Threshold");
+                if (LightDirLowLevelProperty != null)
+                    materialEditor.ShaderProperty(LightDirLowLevelProperty, "Low Light Level");
+                if (LightDirMidLevelProperty != null)
+                    materialEditor.ShaderProperty(LightDirMidLevelProperty, "Mid Light Level");
+                if (LightDirHighLevelProperty != null)
+                    materialEditor.ShaderProperty(LightDirHighLevelProperty, "High Light Level");
+                if (LightDirSoftnessProperty != null)
+                    materialEditor.ShaderProperty(LightDirSoftnessProperty, "Light Boundary Softness");
             }
 
             if (SpecularIntensityProperty != null && EnableHairProperty.floatValue != 1.0f)
@@ -1309,11 +1385,9 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             }
             
-            if (enableMirrorProp.floatValue == 1.0f)
-            {
-                //Blendしない設定にする
-                SetMaterialSrcDstBlendPropertiesLL(material, UnityEngine.Rendering.BlendMode.One, UnityEngine.Rendering.BlendMode.Zero);
-            }
+            // Rebuild keywords and blend state after setting the new surface type.
+            // MaterialProperty fields belong to Inspector drawing and may still be null here.
+            ValidateMaterial(material);
 
             /*
             // _Emission property is lost after assigning Standard shader to the material

@@ -1,4 +1,4 @@
-﻿#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/BRDF.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/Debugging3D.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/GlobalIllumination.hlsl"
@@ -23,6 +23,30 @@
     #define OUTPUT_LIGHTMAP_UV(lightmapUV, lightmapScaleOffset, OUT)
     #define OUTPUT_SH(normalWS, OUT) OUT.xyz = SampleSHVertex(normalWS)
 #endif
+
+// Background main-light diffuse response. Thresholds use NdotL in [0, 1].
+half EvaluateBackgroundLightDirection(half NdotL)
+{
+    if (_LightDirMode < 0.5)
+        return max(0.0h, (NdotL - 0.5h) * max(_LightDirContrast, 1.0) + 0.5h);
+
+    float low = saturate(min(_LightDirLowThreshold, _LightDirHighThreshold));
+    float high = saturate(max(_LightDirLowThreshold, _LightDirHighThreshold));
+    float softness = min(max(_LightDirSoftness, 0.0), (high - low) * 0.5);
+    float toMid;
+    float toHigh;
+    if (softness > 0.00001)
+    {
+        toMid = smoothstep(low - softness, low + softness, NdotL);
+        toHigh = smoothstep(high - softness, high + softness, NdotL);
+    }
+    else
+    {
+        toMid = step(low, NdotL);
+        toHigh = step(high, NdotL);
+    }
+    return lerp(lerp(_LightDirLowLevel, _LightDirMidLevel, toMid), _LightDirHighLevel, toHigh);
+}
 
 // --- BaseColor
 inline float4 SampleLLBaseColor(float2 uv, float3 normalWS, float3 viewDirWS)
@@ -72,7 +96,9 @@ void LLToonLighting(
     
     half NdotL = saturate(dot(nWS, mainLight.direction));
     half radianceBase = mainLightShadowArea * masks.lightMapMask * NdotL;
-    half3 radiance = chara ? mainLight.color : radianceBase * mainLight.color;
+    half diffuseNdotL = chara ? NdotL : EvaluateBackgroundLightDirection(NdotL);
+    half3 radiance = chara ? mainLight.color
+        : mainLightShadowArea * masks.lightMapMask * diffuseNdotL * mainLight.color;
 
     float maskGI = chara ? masks.GIOffMapMask : 1.0f;
 
