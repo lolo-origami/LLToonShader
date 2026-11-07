@@ -42,6 +42,12 @@ Shader "Universal Render Pipeline/URPLLToonBG"
         
         [Space(30)]
 
+        [Header(Distance PBR)]
+        [ToggleUI] _EnableDistancePBR("Enable Distance PBR", Float) = 1
+        _PBRFadeStart("PBR Fade Start Distance", Float) = 10
+        _PBRFadeEnd("PBR Fade End Distance", Float) = 60
+        _PBRFarStrength("Far PBR Strength", Range(0, 1)) = 0.25
+
         [Header(Bloom)]
         [Space(5)]
         _BloomFactor ("Common Bloom Factor", range(0.0, 1.0)) = 1.0
@@ -296,7 +302,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             // -------------------------------------
             // Shader Stages
             #pragma vertex DepthNormalsVertex
-            #pragma fragment DepthNormalsFragment
+            #pragma fragment LLToonBGDepthNormalsFragment
 
             // -------------------------------------
             // Material Keywords
@@ -321,8 +327,42 @@ Shader "Universal Render Pipeline/URPLLToonBG"
 
             // -------------------------------------
             // Includes
+            #define LL_TOON_BG_DISTANCE_PBR 1
             #include "LLToonInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitDepthNormalsPass.hlsl"
+
+            void LLToonBGDepthNormalsFragment(
+                Varyings input,
+                out half4 outNormalWS : SV_Target0
+            #ifdef _WRITE_RENDERING_LAYERS
+                , out uint outRenderingLayers : SV_Target1
+            #endif
+            )
+            {
+                DepthNormalsFragment(input, outNormalWS
+            #ifdef _WRITE_RENDERING_LAYERS
+                    , outRenderingLayers
+            #endif
+                );
+
+            #if !defined(_GBUFFER_NORMALS_OCT)
+                float depth = input.positionCS.z;
+            #if !UNITY_REVERSED_Z
+                depth = lerp(UNITY_NEAR_CLIP_VALUE, 1.0, depth);
+            #endif
+
+                float3 positionWS = ComputeWorldSpacePosition(
+                    GetNormalizedScreenSpaceUV(input.positionCS),
+                    depth,
+                    UNITY_MATRIX_I_VP);
+
+                float normalFade = GetLLToonBGDistanceFade(positionWS);
+                outNormalWS.xyz = normalize(lerp(
+                    outNormalWS.xyz,
+                    NormalizeNormalPerPixel(input.normalWS),
+                    normalFade));
+            #endif
+            }
             ENDHLSL
         }
         
@@ -380,6 +420,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             
             HLSLPROGRAM
             
+            #define LL_TOON_BG_DISTANCE_PBR 1
             #include "LLToonForwardLighting.hlsl"
 
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
@@ -393,7 +434,6 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             #pragma shader_feature_local_fragment ENABLE_FACE_SHADOW_MAP
             #pragma shader_feature_local_fragment ENABLE_SPECULAR
             #pragma shader_feature_local_fragment ENABLE_RIM
-            #pragma shader_feature_local_fragment ENABLE_OUTLINE
             #pragma shader_feature_local_fragment ENABLE_FLAT_GI
             #pragma shader_feature_local_fragment ENABLE_STYLIZE_GI
             //#pragma shader_feature_local_fragment ENABLE_RAMP_SHADOW

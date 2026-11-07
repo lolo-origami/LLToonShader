@@ -163,17 +163,6 @@ Shader "Universal Render Pipeline/URPLLToonBGTransparent"
         */
         [Space(30)]
 
-        [Header(Outline Setting)]
-        [Space(5)]
-        _OutlineMask("Outline Mask", 2D) = "white" {}
-        _OutlineWidth ("_OutlineWidth (World Space)", Range(0, 50)) = 1
-        _OutlineLightAffects("Outline Light Affects", Range(0.0, 1.0)) = 1.0
-        _OutlineSaturation("Outline Saturation", Range(0.0, 4.0)) = 3.0
-        _OutlineBrightness("Outline Brightness", Range(0.0, 1.0)) = 0.25
-        _OutlineStrength("Outline Strength", Range(0.0, 1.0)) = 0.5
-        _OutlineSmoothness("Outline Smoothness", Range(0.0, 1.0)) = 1.0
-        //[HideInInspector]_OutlineZOffset ("_OutlineZOffset (View Space) (increase it if is face!)", Range(0, 1)) = 0.0001
-
         [Header(Alpha)]
         [Toggle(ENABLE_ALPHA_CLIPPING)]_AlphaClip ("_AlphaClip", Float) = 0
         _Cutoff ("_Cutoff (Alpha Cutoff)", Range(0.0, 1.0)) = 0.5        

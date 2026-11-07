@@ -203,7 +203,26 @@ float _LightDirLowLevel;
 float _LightDirMidLevel;
 float _LightDirHighLevel;
 float _LightDirSoftness;
+float _EnableDistancePBR;
+float _PBRFadeStart;
+float _PBRFadeEnd;
+float _PBRFarStrength;
 CBUFFER_END
+
+float GetLLToonBGDistanceFade(float3 positionWS)
+{
+#if defined(LL_TOON_BG_DISTANCE_PBR)
+    if (_EnableDistancePBR > 0.5)
+    {
+        float cameraDistance = distance(GetCameraPositionWS(), positionWS);
+        float fadeStart = max(_PBRFadeStart, 0.0);
+        float fadeEnd = max(_PBRFadeEnd, fadeStart + 0.001);
+        return smoothstep(fadeStart, fadeEnd, cameraDistance);
+    }
+#endif
+    return 0.0;
+}
+
 sampler2D _CameraReflectionTexture;
 
 // NOTE: Do not ifdef the properties for dots instancing, but ifdef the actual usage.

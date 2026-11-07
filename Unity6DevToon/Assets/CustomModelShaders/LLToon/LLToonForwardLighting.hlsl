@@ -364,6 +364,15 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
     SurfaceData surfaceData;
     InitializeStandardSurfaceDataLL(input.uv, surfaceData, input.positionCS);
+
+#if defined(LL_TOON_BG_DISTANCE_PBR) && defined(_NORMALMAP)
+    float normalFade = GetLLToonBGDistanceFade(input.positionWS);
+    surfaceData.normalTS = normalize(lerp(
+        surfaceData.normalTS,
+        half3(0.0h, 0.0h, 1.0h),
+        normalFade));
+#endif
+
     LLToonInputData inputData;
     InitializeLLToonInputData(input, surfaceData.normalTS, inputData);
     //SETUP_DEBUG_TEXTURE_DATA(inputData, input.uv, _BaseMap);

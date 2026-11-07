@@ -71,6 +71,21 @@ void LLToonLighting(
     // --- マスク情報
     LLMaskData masks = SampleLLMask(uv);
 
+    half pbrStrength = 1.0h;
+#if defined(LL_TOON_BG_DISTANCE_PBR)
+    if (!chara && _EnableDistancePBR > 0.5)
+    {
+        float cameraDistance = distance(
+            GetCameraPositionWS(), inputData.baseInputData.positionWS);
+        float fadeStart = max(_PBRFadeStart, 0.0);
+        float fadeEnd = max(_PBRFadeEnd, fadeStart + 0.001);
+        float fade = smoothstep(fadeStart, fadeEnd, cameraDistance);
+        pbrStrength = lerp(1.0h, saturate(_PBRFarStrength), fade);
+    }
+#endif
+    masks.specularMask *= pbrStrength;
+    masks.specularMaskHigh *= pbrStrength;
+
     // --- BRDF
     BRDFData brdfData;
     InitializeBRDFData(surfaceData, brdfData);
@@ -103,7 +118,12 @@ void LLToonLighting(
     float maskGI = chara ? masks.GIOffMapMask : 1.0f;
 
     // --- GI
-    o.GIColor.rgb = CalculateLLGI(inputData, brdfData, brdfDataClearCoat, surfaceData, mainLight, maskGI);
+    BRDFData giBRDFData = brdfData;
+    giBRDFData.specular *= pbrStrength;
+    giBRDFData.grazingTerm *= pbrStrength;
+    o.GIColor.rgb = CalculateLLGI(
+        inputData, giBRDFData, brdfDataClearCoat,
+        surfaceData, mainLight, maskGI);
     o.GIColor.a = 0;
 
     // --- BaseColor

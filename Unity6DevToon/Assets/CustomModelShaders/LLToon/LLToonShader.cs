@@ -85,6 +85,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         protected MaterialProperty LightDirMidLevelProperty { get; set; }
         protected MaterialProperty LightDirHighLevelProperty { get; set; }
         protected MaterialProperty LightDirSoftnessProperty { get; set; }
+        protected MaterialProperty EnableDistancePBRProperty { get; set; }
+        protected MaterialProperty PBRFadeStartProperty { get; set; }
+        protected MaterialProperty PBRFadeEndProperty { get; set; }
+        protected MaterialProperty PBRFarStrengthProperty { get; set; }
         protected MaterialProperty SpecularIntensityProperty { get; set; }
         protected MaterialProperty SpecularHighIntensityProperty { get; set; }
         protected MaterialProperty SpecularIntensityShadowProperty { get; set; }
@@ -555,6 +559,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             LightDirMidLevelProperty = FindProperty("_LightDirMidLevel", properties, false);
             LightDirHighLevelProperty = FindProperty("_LightDirHighLevel", properties, false);
             LightDirSoftnessProperty = FindProperty("_LightDirSoftness", properties, false);
+            EnableDistancePBRProperty = FindProperty("_EnableDistancePBR", properties, false);
+            PBRFadeStartProperty = FindProperty("_PBRFadeStart", properties, false);
+            PBRFadeEndProperty = FindProperty("_PBRFadeEnd", properties, false);
+            PBRFarStrengthProperty = FindProperty("_PBRFarStrength", properties, false);
             SpecularIntensityProperty = FindProperty("_SpecularIntensity", properties, false);
             SpecularHighIntensityProperty = FindProperty("_SpecularIntensityHigh", properties, false);
             SpecularIntensityShadowProperty = FindProperty("_SpecularIntensityShadow", properties, false);
@@ -963,6 +971,15 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         /// <param name="material"></param>
         public void DrawBRDFPropertiesLL(Material material)
         {
+            if (EnableDistancePBRProperty != null && PBRFadeStartProperty != null &&
+                PBRFadeEndProperty != null && PBRFarStrengthProperty != null)
+            {
+                materialEditor.ShaderProperty(EnableDistancePBRProperty, "Enable Distance PBR");
+                materialEditor.ShaderProperty(PBRFadeStartProperty, "PBR Fade Start Distance");
+                materialEditor.ShaderProperty(PBRFadeEndProperty, "PBR Fade End Distance");
+                materialEditor.ShaderProperty(PBRFarStrengthProperty, "Far PBR Strength");
+            }
+
             if (MetallicProp != null)
             {
                 DrawFloatSliderValue(CustomStyleLL.MetallicOptions, 0, 1, MetallicProp);
@@ -1302,6 +1319,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 {
                     DrawFloatSliderValue(CustomStyleLL.OutlineWidthOptions, 0, 50, OutlineWidthProp);
                 }
+
+
+
+
 
                 if (OutlineLightAffectsProp != null)
                 {
