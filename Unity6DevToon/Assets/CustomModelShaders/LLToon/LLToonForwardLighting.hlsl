@@ -309,6 +309,11 @@ half4 LLFragmentChara(Varyings input) : SV_Target
     LLLightingData lllData;
     LLToonLighting(inputData, surfaceData, input.uv, true, lllData, input.screenPos);
 
+#if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
+    return half4(lllData.ColorAdjustShadowMask, lllData.ColorAdjustAOMask,
+        0, OutputAlpha(surfaceData.alpha, _Surface));
+#endif
+
     // 計算した要素を足し合わせる
     half4 finalColor = 0;
 
@@ -384,6 +389,15 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     //ライティング
     LLLightingData lllData;
     LLToonLighting(inputData, surfaceData, input.uv, false, lllData, input.screenPos);
+
+#if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
+    #if defined(ENABLE_EMISSION_ONLY)
+        return half4(0, 0, 0, OutputAlpha(surfaceData.alpha, _Surface));
+    #else
+        return half4(lllData.ColorAdjustShadowMask, lllData.ColorAdjustAOMask,
+            0, OutputAlpha(surfaceData.alpha, _Surface));
+    #endif
+#endif
 
     //Reflection
     float4 reflectColor = float4(0,0,0,0);

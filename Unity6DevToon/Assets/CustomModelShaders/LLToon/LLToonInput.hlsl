@@ -301,6 +301,8 @@ struct LLLightingData
     half4 SpecRimEmission; //全体的な輝きコントロール
     half RampOutline; //2影の境界線調整値(メインで計算後アウトラインにに使いまわす)
     half HalfLambert;
+    half ColorAdjustShadowMask;
+    half ColorAdjustAOMask;
 };
             
 //Toonに必要な要素

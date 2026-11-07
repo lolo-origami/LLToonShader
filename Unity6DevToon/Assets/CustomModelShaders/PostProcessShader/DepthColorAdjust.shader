@@ -21,7 +21,22 @@ Shader "Hidden/LL/PostProcess/DepthColorAdjust"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
+            TEXTURE2D_X(_ShadowMaskTexture);
+
             CBUFFER_START(UnityPerMaterial)
+                float _SeparateShadowAndLit;
+                int _ShadowSelection;
+                float _ShadowNearExposure;
+                float _ShadowNearContrast;
+                float4 _ShadowNearColorFilter;
+                float _ShadowNearHueShift;
+                float _ShadowNearSaturation;
+                float _ShadowFarExposure;
+                float _ShadowFarContrast;
+                float4 _ShadowFarColorFilter;
+                float _ShadowFarHueShift;
+                float _ShadowFarSaturation;
+
                 float _IntermediateMin;
                 float _IntermediateMax;
 
@@ -74,6 +89,7 @@ Shader "Hidden/LL/PostProcess/DepthColorAdjust"
 
             float4 Frag(Varyings i) : SV_Target
             {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float4 src = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.texcoord);
                 float d = SAMPLE_TEXTURE2D_X(_CameraDepthTexture, sampler_PointClamp, i.texcoord).r;
 
@@ -84,6 +100,36 @@ Shader "Hidden/LL/PostProcess/DepthColorAdjust"
                 float3 nearC = ApplyColorAdjust(src.rgb, _NearExposure, _NearContrast, _NearHueShift, _NearSaturation, _NearColorFilter);
                 float3  farC = ApplyColorAdjust(src.rgb, _FarExposure,  _FarContrast,  _FarHueShift,  _FarSaturation,  _FarColorFilter);
                 float3 outC = lerp(nearC, farC, w);
+                // OFF: preserve the existing Near/Far result. ON: Near/Far is the lit region.
+                [branch]
+                if (_SeparateShadowAndLit > 0.5)
+                {
+                    float3 shadowNearC = ApplyColorAdjust(src.rgb,
+                        _ShadowNearExposure, _ShadowNearContrast, _ShadowNearHueShift,
+                        _ShadowNearSaturation, _ShadowNearColorFilter);
+                    float3 shadowFarC = ApplyColorAdjust(src.rgb,
+                        _ShadowFarExposure, _ShadowFarContrast, _ShadowFarHueShift,
+                        _ShadowFarSaturation, _ShadowFarColorFilter);
+                    float3 shadowC = lerp(shadowNearC, shadowFarC, w);
+                    // R: realtime + baked Shadowmask. G: ambient occlusion.
+                    float2 mask = saturate(SAMPLE_TEXTURE2D_X(
+                        _ShadowMaskTexture, sampler_PointClamp, i.texcoord).rg);
+                    float shadowMask;
+                    [branch]
+                    if (_ShadowSelection == 0)
+                    {
+                        shadowMask = mask.r;
+                    }
+                    else if (_ShadowSelection == 1)
+                    {
+                        shadowMask = mask.g;
+                    }
+                    else
+                    {
+                        shadowMask = max(mask.r, mask.g);
+                    }
+                    outC = lerp(outC, shadowC, shadowMask);
+                }
                 return float4(outC, src.a);
             }
             ENDHLSL

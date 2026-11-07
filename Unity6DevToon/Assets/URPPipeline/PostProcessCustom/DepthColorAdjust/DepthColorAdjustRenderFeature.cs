@@ -9,10 +9,12 @@ using UnityEngine.Rendering.Universal;
 public class DepthColorAdjustRenderFeature : LLPostProcessRFBase
 {
     private DepthColorAdjustPass _pass;
+    private DepthColorAdjustShadowMaskPass _shadowMaskPass;
 
     protected override void OnCreate()
     {
         _pass = new DepthColorAdjustPass(settings.renderPassEvent, settings.shader);
+        _shadowMaskPass = new DepthColorAdjustShadowMaskPass(settings.renderPassEvent);
     }
 
     public override bool IsActiveThisFrame(ref RenderingData renderingData)
@@ -30,6 +32,10 @@ public class DepthColorAdjustRenderFeature : LLPostProcessRFBase
         bool isLast = (idx == last);
 
         _pass.ConfigureBufferPolicy(settings.IsRestore, settings.RestoreName, settings.IsSave, settings.SaveName);
+        var comp = VolumeManager.instance.stack.GetComponent<DepthColorAdjust>();
+        if (comp.SeparateShadowAndLit.value)
+            renderer.EnqueuePass(_shadowMaskPass);
+
         renderer.EnqueuePass(_pass);
 
         if (isLast)

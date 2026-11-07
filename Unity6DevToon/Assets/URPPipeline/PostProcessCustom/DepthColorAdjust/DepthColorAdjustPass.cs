@@ -11,6 +11,20 @@ using static LLPostProcessBufferManager;
 
 public class DepthColorAdjustPass : LLPostProcessPassBase
 {
+    private static readonly int _shadowSelectionId = Shader.PropertyToID("_ShadowSelection");
+    private static readonly int _separateShadowAndLitId = Shader.PropertyToID("_SeparateShadowAndLit");
+    private static readonly int _shadowMaskTextureId = Shader.PropertyToID("_ShadowMaskTexture");
+    private static readonly int _shadowNearExposureId = Shader.PropertyToID("_ShadowNearExposure");
+    private static readonly int _shadowNearContrastId = Shader.PropertyToID("_ShadowNearContrast");
+    private static readonly int _shadowNearColorFilterId = Shader.PropertyToID("_ShadowNearColorFilter");
+    private static readonly int _shadowNearHueShiftId = Shader.PropertyToID("_ShadowNearHueShift");
+    private static readonly int _shadowNearSaturationId = Shader.PropertyToID("_ShadowNearSaturation");
+    private static readonly int _shadowFarExposureId = Shader.PropertyToID("_ShadowFarExposure");
+    private static readonly int _shadowFarContrastId = Shader.PropertyToID("_ShadowFarContrast");
+    private static readonly int _shadowFarColorFilterId = Shader.PropertyToID("_ShadowFarColorFilter");
+    private static readonly int _shadowFarHueShiftId = Shader.PropertyToID("_ShadowFarHueShift");
+    private static readonly int _shadowFarSaturationId = Shader.PropertyToID("_ShadowFarSaturation");
+
     // Property IDs
     private static readonly int _nearExposureId    = Shader.PropertyToID("_NearExposure");
     private static readonly int _nearContrastId    = Shader.PropertyToID("_NearContrast");
@@ -29,6 +43,19 @@ public class DepthColorAdjustPass : LLPostProcessPassBase
 
     private class PassData
     {
+        public int shadowSelection;
+        public bool separateShadowAndLit;
+        public TextureHandle shadowMask;
+        public float shadowNearExposure;
+        public float shadowNearContrast;
+        public Color shadowNearColorFilter;
+        public float shadowNearHueShift;
+        public float shadowNearSaturation;
+        public float shadowFarExposure;
+        public float shadowFarContrast;
+        public Color shadowFarColorFilter;
+        public float shadowFarHueShift;
+        public float shadowFarSaturation;
         public Material material;
         public TextureHandle src;
         public float nearExposure;
@@ -53,6 +80,7 @@ public class DepthColorAdjustPass : LLPostProcessPassBase
     public DepthColorAdjustPass(RenderPassEvent evt, Shader shader)
     {
         this.renderPassEvent = evt;
+        ConfigureInput(ScriptableRenderPassInput.Depth);
         if (shader != null)
         {
             _material = CoreUtils.CreateEngineMaterial(shader);
@@ -73,16 +101,36 @@ public class DepthColorAdjustPass : LLPostProcessPassBase
             return;
         }
 
+        TextureHandle shadowMask = TextureHandle.nullHandle;
+        bool separate = comp.SeparateShadowAndLit.value;
+        if (separate && !TryGetSavedBuffer(frameData, DepthColorAdjustShadowMaskPass.BufferName, out shadowMask))
+            return;
+
         TextureHandle src = GetSrcHandle(frameData, res);
         TextureHandle dst = GetDstHandle(renderGraph, frameData, src);
 
         using (var builder = renderGraph.AddRasterRenderPass("Depth Color Adjust", out PassData data))
         {
             builder.UseTexture(src, AccessFlags.Read);
+            builder.UseTexture(res.cameraDepthTexture, AccessFlags.Read);
+            if (separate) builder.UseTexture(shadowMask, AccessFlags.Read);
             builder.SetRenderAttachment(dst, 0, AccessFlags.Write);
 
             data.material = _material;
             data.src = src;
+            data.shadowSelection = (int)comp.ShadowSelection.value;
+            data.separateShadowAndLit = separate;
+            data.shadowMask = shadowMask;
+            data.shadowNearExposure = comp.ShadowNearExposure.value;
+            data.shadowNearContrast = comp.ShadowNearContrast.value;
+            data.shadowNearColorFilter = comp.ShadowNearColorFilter.value;
+            data.shadowNearHueShift = comp.ShadowNearHueShift.value;
+            data.shadowNearSaturation = comp.ShadowNearSaturation.value;
+            data.shadowFarExposure = comp.ShadowFarExposure.value;
+            data.shadowFarContrast = comp.ShadowFarContrast.value;
+            data.shadowFarColorFilter = comp.ShadowFarColorFilter.value;
+            data.shadowFarHueShift = comp.ShadowFarHueShift.value;
+            data.shadowFarSaturation = comp.ShadowFarSaturation.value;
 
             data.nearExposure   = comp.NearExposure.value;
             data.nearContrast   = comp.NearContrast.value;
@@ -115,6 +163,23 @@ public class DepthColorAdjustPass : LLPostProcessPassBase
 
                 d.material.SetFloat(_intermediateMinId, d.minDepth);
                 d.material.SetFloat(_intermediateMaxId, d.maxDepth);
+
+                d.material.SetFloat(_separateShadowAndLitId, d.separateShadowAndLit ? 1f : 0f);
+                d.material.SetInt(_shadowSelectionId, d.shadowSelection);
+                if (d.separateShadowAndLit)
+                {
+                    d.material.SetTexture(_shadowMaskTextureId, d.shadowMask);
+                    d.material.SetFloat(_shadowNearExposureId, d.shadowNearExposure);
+                    d.material.SetFloat(_shadowNearContrastId, d.shadowNearContrast);
+                    d.material.SetColor(_shadowNearColorFilterId, d.shadowNearColorFilter);
+                    d.material.SetFloat(_shadowNearHueShiftId, d.shadowNearHueShift);
+                    d.material.SetFloat(_shadowNearSaturationId, d.shadowNearSaturation);
+                    d.material.SetFloat(_shadowFarExposureId, d.shadowFarExposure);
+                    d.material.SetFloat(_shadowFarContrastId, d.shadowFarContrast);
+                    d.material.SetColor(_shadowFarColorFilterId, d.shadowFarColorFilter);
+                    d.material.SetFloat(_shadowFarHueShiftId, d.shadowFarHueShift);
+                    d.material.SetFloat(_shadowFarSaturationId, d.shadowFarSaturation);
+                }
 
                 ExecutePass(d.src, d.material, ctx, 0);
             });

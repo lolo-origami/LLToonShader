@@ -387,6 +387,56 @@ Shader "Universal Render Pipeline/URPLLToonMayu"
             ENDHLSL
         }
 
+
+        Pass
+        {
+            Name "DepthColorAdjustShadowMask"
+
+            Tags { "LightMode" = "LLDepthColorAdjustShadowMask" }
+
+            Cull[_Cull]
+            ZTest LEqual
+            ZWrite Off
+            Blend SrcAlpha OneMinusSrcAlpha
+
+            HLSLPROGRAM
+            #define LL_DEPTH_COLOR_ADJUST_SHADOW_MASK 1
+
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fog
+
+            #pragma shader_feature_local_fragment ENABLE_ALPHA_CLIPPING
+            #pragma shader_feature_local_fragment ENABLE_BLOOM_MASK
+            #pragma shader_feature_local_fragment ENABLE_FACE_SHADOW_MAP
+            #pragma shader_feature_local_fragment ENABLE_MATCAP_SPECULAR
+            #pragma shader_feature_local_fragment ENABLE_HAIR_SPECULAR
+            #pragma shader_feature_local ENABLE_FACE_CHEEK
+            #pragma shader_feature_local ENABLE_EYEBROW_FLOATING
+            #pragma shader_feature_local_fragment ENABLE_INVERSE_SHADOW
+            #pragma shader_feature_local_fragment ENABLE_TIGHTS
+            #pragma shader_feature_local_fragment ENABLE_SPECULAR
+            #pragma shader_feature_local_fragment ENABLE_FLAT_GI
+            #pragma shader_feature_local_fragment ENABLE_STYLIZE_GI
+            #pragma shader_feature_local_fragment ENABLE_RIM
+            #pragma shader_feature_local_fragment ENABLE_OUTLINE
+            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ LIGHTMAP_ON
+            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _SCREEN_SPACE_OCCLUSION
+
+            #include "LLToonForwardLighting.hlsl"
+
+            #pragma vertex VertexBase
+            #pragma fragment LLFragmentChara
+            ENDHLSL
+        }
+
         // 再描画
         Pass
         {
@@ -625,6 +675,7 @@ Shader "Universal Render Pipeline/URPLLToonMayu"
 
             ENDHLSL
         }
+
 
     }
     CustomEditor "UnityEditor.Rendering.Universal.ShaderGUI.LLToonShader"

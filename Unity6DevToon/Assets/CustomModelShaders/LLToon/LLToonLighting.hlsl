@@ -107,6 +107,10 @@ void LLToonLighting(
     Light mainLight = GetMainLight(inputData.baseInputData, shadowMask, aoFactor);
 
     float mainLightShadowArea = _ReceiveShadows ? mainLight.shadowAttenuation : 1;
+    // URP has already mixed realtime shadows and baked Shadowmask occlusion.
+    // Keep this independent of the toon ramp and its material thresholds.
+    o.ColorAdjustShadowMask = saturate(1.0h - mainLightShadowArea);
+    o.ColorAdjustAOMask = saturate(1.0h - aoFactor.indirectAmbientOcclusion);
     float3 nWS = inputData.baseInputData.normalWS;
     
     half NdotL = saturate(dot(nWS, mainLight.direction));
