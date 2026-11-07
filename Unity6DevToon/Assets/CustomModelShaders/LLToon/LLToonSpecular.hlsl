@@ -6,8 +6,10 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/AmbientOcclusion.hlsl"
 
 
-#include "LLToonInput.hlsl"
+#include "LLToonLightingData.hlsl"
+#if defined(ENABLE_TIGHTS)
 #include "LLToonUnique.hlsl"
+#endif
 
 half3 LLToonSpecularLightingHair(
     LLToonInputData inputData,

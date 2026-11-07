@@ -6,7 +6,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/AmbientOcclusion.hlsl"
 
 
-#include "LLToonInput.hlsl"
+#include "LLToonLightingData.hlsl"
 
 // 特定方向からの簡易シャドウ
 inline float LLToonFixedDirShadow(float3 nWS, float3 fixedDirWS, float area, float smooth, float strength)
@@ -137,12 +137,15 @@ half4 LLToonAddLighting(
     )
 {
     //追加光情報
+    // URP's clustered LIGHT_LOOP_BEGIN macro reads a local named inputData.
+    InputData inputData = llTInput.baseInputData;
     uint pixelLightCount = GetAdditionalLightsCount();
     half4 addLightColor = half4(0,0,0,0);
 
-    #if USE_CLUSTERED_LIGHTING
-    for (uint lightIndex = 0; lightIndex < min(_AdditionalLightsDirectionalCount, MAX_VISIBLE_LIGHTS); lightIndex++)
+    #if USE_CLUSTER_LIGHT_LOOP
+    for (uint lightIndex = 0; lightIndex < min(URP_FP_DIRECTIONAL_LIGHTS_COUNT, MAX_VISIBLE_LIGHTS); lightIndex++)
     {
+        CLUSTER_LIGHT_LOOP_SUBTRACTIVE_LIGHT_CHECK
         Light light = GetAdditionalLight(lightIndex, llTInput.baseInputData.positionWS);
 #ifdef _LIGHT_LAYERS 
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))

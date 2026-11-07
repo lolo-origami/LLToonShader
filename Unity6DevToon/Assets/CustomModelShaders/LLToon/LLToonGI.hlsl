@@ -6,7 +6,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/AmbientOcclusion.hlsl"
 
 
-#include "LLToonInput.hlsl"
+#include "LLToonLightingData.hlsl"
 
 // --- GI計算
 inline float3 CalculateLLGI(LLToonInputData inputData, BRDFData brdfData, BRDFData brdfDataClearCoat,
@@ -27,16 +27,15 @@ inline float3 CalculateLLGI(LLToonInputData inputData, BRDFData brdfData, BRDFDa
     half3 indirectSpecular = GlossyEnvironmentReflection(reflectVector, inputData.baseInputData.positionWS, brdfData.perceptualRoughness, 1.0h, float2(0,0));
 
     return EnvironmentBRDF(brdfData, gi, indirectSpecular, fresnelTerm);
-#endif
-
-#if ENABLE_STYLIZE_GI    
+#elif ENABLE_STYLIZE_GI
     MixRealtimeAndBakedGI(mainLight, inputData.baseInputData.normalWS, inputData.baseInputData.bakedGI);
 
     float3 gi = GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
                               inputData.baseInputData.bakedGI, aoFactor.indirectAmbientOcclusion,
                               inputData.baseInputData.positionWS,
                               inputData.baseInputData.normalWS,
-                              inputData.baseInputData.viewDirectionWS) * maskGI;
+                              inputData.baseInputData.viewDirectionWS,
+                              inputData.baseInputData.normalizedScreenSpaceUV) * maskGI;
 
     // 輝度をインデックスに
     float lum = dot(gi, float3(0.299, 0.587, 0.114));
@@ -45,16 +44,14 @@ inline float3 CalculateLLGI(LLToonInputData inputData, BRDFData brdfData, BRDFDa
     
     // 元の GI 色にトーン係数を掛ける
     return gi * tone;
-#endif    
-
-    
+#else
     MixRealtimeAndBakedGI(mainLight, inputData.baseInputData.normalWS, inputData.baseInputData.bakedGI);
 
     return GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
                               inputData.baseInputData.bakedGI, aoFactor.indirectAmbientOcclusion,
                               inputData.baseInputData.positionWS,
                               inputData.baseInputData.normalWS,
-                              inputData.baseInputData.viewDirectionWS) * maskGI;
-                              
-                              
+                              inputData.baseInputData.viewDirectionWS,
+                              inputData.baseInputData.normalizedScreenSpaceUV) * maskGI;
+#endif
 }
