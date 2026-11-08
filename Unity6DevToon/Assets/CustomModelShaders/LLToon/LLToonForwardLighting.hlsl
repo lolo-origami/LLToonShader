@@ -1,4 +1,4 @@
-﻿#ifndef UNIVERSAL_SIMPLE_LIT_PASS_INCLUDED
+#ifndef UNIVERSAL_SIMPLE_LIT_PASS_INCLUDED
 #define UNIVERSAL_SIMPLE_LIT_PASS_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -289,7 +289,7 @@ Varyings VertexBase(Attributes input)
     return output;
 }
 
-// Used Chara shader
+// キャラクター用の描画
 half4 LLFragmentChara(Varyings input) : SV_Target
 {
     //URP基本のInputData、SurfaceDataの取得
@@ -305,28 +305,44 @@ half4 LLFragmentChara(Varyings input) : SV_Target
     ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
 #endif
 
+#if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
+    half2 masks = CalculateLLColorAdjustMasks(inputData.baseInputData, surfaceData);
+    return half4(masks, 0, OutputAlpha(surfaceData.alpha, _Surface));
+#else
     //ライティング
     LLLightingData lllData;
     LLToonLighting(inputData, surfaceData, input.uv, true, lllData, input.screenPos);
 
-#if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
-    return half4(lllData.ColorAdjustShadowMask, lllData.ColorAdjustAOMask,
-        0, OutputAlpha(surfaceData.alpha, _Surface));
-#endif
-
     // 計算した要素を足し合わせる
     half4 finalColor = 0;
 
-    finalColor.rgb += lllData.BaseToonLightingColor.rgb;
+    UNITY_BRANCH
+    if (_LightingCalculationMode < 0.5)
+    {
+        finalColor.rgb += lllData.BaseToonLightingColor.rgb;
 
-    finalColor.rgb += lllData.AdditionalLightsColor.rgb * _AddLightIntensity;
-    finalColor.rgb += lllData.RimColor.rgb + lllData.DarkRimColor.rgb;
+        finalColor.rgb += lllData.AdditionalLightsColor.rgb * _AddLightIntensity;
+        finalColor.rgb += lllData.RimColor.rgb + lllData.DarkRimColor.rgb;
 
-    // Bloom α を強度係数として利用
-    finalColor.rgb += lllData.EmissionColor.rgb   * lllData.EmissionColor.a;
-    finalColor.rgb += lllData.SpecRimEmission.rgb * lllData.SpecRimEmission.a;
+        // Bloom α を強度係数として利用
+        finalColor.rgb += lllData.EmissionColor.rgb   * lllData.EmissionColor.a;
+        finalColor.rgb += lllData.SpecRimEmission.rgb * lllData.SpecRimEmission.a;
 
-    finalColor.rgb += lllData.GIColor.rgb * _GIInfluence;    
+        finalColor.rgb += lllData.GIColor.rgb * _GIInfluence;
+
+
+    }
+    else
+    {
+        // 材質色と各成分の光は、この最終描画で合成する。
+        finalColor.rgb = ComposeLLToonDiffuse(lllData);
+        finalColor.rgb += ComposeLLToonSpecular(lllData);
+        finalColor.rgb += ComposeLLToonRim(lllData);
+        finalColor.rgb += ComposeLLToonGI(lllData);
+        finalColor.rgb += lllData.ReflectionColor;
+        finalColor.rgb += lllData.EmissionColor.rgb * lllData.EmissionColor.a;
+        finalColor.rgb += lllData.SpecRimEmission.rgb * lllData.SpecRimEmission.a;
+    }
 
     #if ENABLE_OUTLINE
     // Outline作る    
@@ -352,7 +368,7 @@ half4 LLFragmentChara(Varyings input) : SV_Target
     finalColor.rgb = lerp(finalColor.rgb, outlineColor, outlineFactor);
     #endif    
     
-    // apply fog
+    // フォグを適用
     finalColor.rgb = MixFog(finalColor.rgb, inputData.baseInputData.fogCoord);
     
     //color.rgb = MixFog(color.rgb, inputData.fogCoord);
@@ -360,6 +376,7 @@ half4 LLFragmentChara(Varyings input) : SV_Target
     
     //finalColor.rgb = lllData.BaseToonLightingColor;
     return finalColor;
+#endif
 }
 
 half4 LLFragmentBG(Varyings input) : SV_Target
@@ -386,20 +403,19 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
     #endif
 
-    //ライティング
-    LLLightingData lllData;
-    LLToonLighting(inputData, surfaceData, input.uv, false, lllData, input.screenPos);
-
 #if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
     #if defined(ENABLE_EMISSION_ONLY)
         return half4(0, 0, 0, OutputAlpha(surfaceData.alpha, _Surface));
     #else
-        return half4(lllData.ColorAdjustShadowMask, lllData.ColorAdjustAOMask,
-            0, OutputAlpha(surfaceData.alpha, _Surface));
+        half2 masks = CalculateLLColorAdjustMasks(inputData.baseInputData, surfaceData);
+        return half4(masks, 0, OutputAlpha(surfaceData.alpha, _Surface));
     #endif
-#endif
+#else
+    //ライティング
+    LLLightingData lllData;
+    LLToonLighting(inputData, surfaceData, input.uv, false, lllData, input.screenPos);
 
-    //Reflection
+    //反射
     float4 reflectColor = float4(0,0,0,0);
 
     #ifdef ENABLE_MIRROR
@@ -431,7 +447,24 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     
     
     // 計算した要素を足し合わせる
-    half4 finalColor = lllData.BaseToonLightingColor + lllData.AdditionalLightsColor * _AddLightIntensity + (lllData.RimColor + lllData.DarkRimColor) * lllData.RimColor.a + lllData.EmissionColor.a * lllData.EmissionColor + lllData.SpecRimEmission.a * lllData.SpecRimEmission + (lllData.GIColor * _GIInfluence) + reflectColor; 
+    half4 finalColor;
+    UNITY_BRANCH
+    if (_LightingCalculationMode < 0.5)
+    {
+        // 旧方式の計算式と演算順序を維持する。
+        finalColor = lllData.BaseToonLightingColor + lllData.AdditionalLightsColor * _AddLightIntensity + (lllData.RimColor + lllData.DarkRimColor) * lllData.RimColor.a + lllData.EmissionColor.a * lllData.EmissionColor + lllData.SpecRimEmission.a * lllData.SpecRimEmission + (lllData.GIColor * _GIInfluence) + reflectColor;
+    }
+    else
+    {
+        finalColor = half4(ComposeLLToonDiffuse(lllData), lllData.AccumulatedLightingAlpha);
+        finalColor.rgb += ComposeLLToonSpecular(lllData);
+        finalColor.rgb += ComposeLLToonRim(lllData);
+        finalColor.rgb += ComposeLLToonGI(lllData);
+        finalColor.rgb += lllData.ReflectionColor;
+        finalColor += lllData.EmissionColor.a * lllData.EmissionColor;
+        finalColor += lllData.SpecRimEmission.a * lllData.SpecRimEmission;
+        finalColor += reflectColor;
+    }
     
 #ifdef ENABLE_EMISSION_ONLY
     float4 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
@@ -444,16 +477,17 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     float D = max(0,1.0 - depth - 0.5);
     finalColor.rgb = 1 / (1 + exp(-500.0 * (D-0.5)));
     */
-    // apply fog
+    // フォグを適用
     finalColor.rgb = MixFog(finalColor.rgb, inputData.baseInputData.fogCoord);
     
     finalColor.a = OutputAlpha(finalColor.a * _BaseColor.a, _Surface);
     
     return finalColor;
+#endif
 }
 
 /*
-// Used BG shader
+// 背景用の描画
 half4 LLFragmentBG(Varyings input) : SV_Target
 {
     UNITY_SETUP_INSTANCE_ID(input);
@@ -470,7 +504,7 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
 #endif
 
-    //Reflection
+    //反射
     float4 reflectColor = float4(0,0,0,0);
 
     #ifdef ENABLE_MIRROR

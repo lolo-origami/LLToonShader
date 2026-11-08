@@ -507,6 +507,11 @@ void SplatmapFragment(
     surfaceData.normalTS = normalTS;
     surfaceData.alpha = 1;
 
+#if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
+    half2 colorAdjustMasks = CalculateLLColorAdjustMasks(inputData, surfaceData);
+    outColor = half4(colorAdjustMasks, 0, 1) * alpha;
+    return;
+#else
     LLToonInputData toonInput = (LLToonInputData)0;
     toonInput.baseInputData = inputData;
     LLToonLightingSurface surface;
@@ -525,18 +530,28 @@ void SplatmapFragment(
     LLToonLighting(toonInput, surfaceData, surface,
         IN.uvMainAndLM.xy, false, lighting, IN.clipPos);
 
-#if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
-    outColor = half4(lighting.ColorAdjustShadowMask, lighting.ColorAdjustAOMask, 0, 1) * alpha;
-    return;
-#endif
-
-    // Same RGB composition as LLFragmentBG. Terrain's layer weight is applied below.
-    half4 color = lighting.BaseToonLightingColor
-        + lighting.AdditionalLightsColor * _AddLightIntensity
-        + (lighting.RimColor + lighting.DarkRimColor) * lighting.RimColor.a
-        + lighting.EmissionColor.a * lighting.EmissionColor
-        + lighting.SpecRimEmission.a * lighting.SpecRimEmission
-        + lighting.GIColor * _GIInfluence;
+    // 背景と同じ方法でRGBを合成する。Terrainのレイヤーの重みは後から掛ける。
+    half4 color;
+    UNITY_BRANCH
+    if (_LightingCalculationMode < 0.5)
+    {
+        color = lighting.BaseToonLightingColor
+            + lighting.AdditionalLightsColor * _AddLightIntensity
+            + (lighting.RimColor + lighting.DarkRimColor) * lighting.RimColor.a
+            + lighting.EmissionColor.a * lighting.EmissionColor
+            + lighting.SpecRimEmission.a * lighting.SpecRimEmission
+            + lighting.GIColor * _GIInfluence;
+    }
+    else
+    {
+        color = half4(ComposeLLToonDiffuse(lighting), lighting.AccumulatedLightingAlpha);
+        color.rgb += ComposeLLToonSpecular(lighting);
+        color.rgb += ComposeLLToonRim(lighting);
+        color.rgb += ComposeLLToonGI(lighting);
+        color.rgb += lighting.ReflectionColor;
+        color += lighting.EmissionColor.a * lighting.EmissionColor;
+        color += lighting.SpecRimEmission.a * lighting.SpecRimEmission;
+    }
     color.a = alpha;
 
     SplatmapFinalColor(color, inputData.fogCoord);
@@ -546,6 +561,7 @@ void SplatmapFragment(
 #ifdef _WRITE_RENDERING_LAYERS
     outRenderingLayers = EncodeMeshRenderingLayer();
 #endif
+#endif // LL_DEPTH_COLOR_ADJUST_SHADOW_MASK
 #endif
 }
 

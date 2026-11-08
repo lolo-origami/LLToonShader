@@ -70,3 +70,50 @@ half ApplyTightsSpecular(
     // specularHigh は残すが最終合成で強制加算する
     return highFactor * radianceScale;
 }
+half ApplyTightsSpecularShape(
+    LLToonInputData llToonInputData,
+    float2 uv,
+    float finalSpecularRadiance
+    )
+{
+    // -------------------------
+    // 正面ハイライト(線) × 高さプロファイル
+    // -------------------------
+    float3 viewDir = normalize(llToonInputData.baseInputData.viewDirectionWS);
+    float3 normal  = normalize(llToonInputData.baseInputData.normalWS);
+    float facing   = saturate(dot(viewDir, normal));
+    // 線っぽさ：ここで形状は完成
+    float baseline = pow(facing, _TightsHighlightScale);
+
+    // 太もも範囲の0..1正規化
+    float h = saturate((uv.y - _TightsThighStart) / max(1e-5, (_TightsThighEnd - _TightsThighStart)));
+
+    // 「どの高さで最強にするか」を制御（中心=_SpecThreshold, 半幅=_SpecWidth）
+    // 三角～ベル型の高さマスク。_SpecContrastでシャープさ可変。
+    float band = 1.0 - abs(h - _TightsSpecThreshold) / max(1e-5, _TightsSpecWidth); // 中心1→端0
+    float heightMask = pow(saturate(band), _SpecContrast);
+
+    // ファイバーノイズ
+    float fiberNoise = AnisotropicNoise(
+        uv,
+        llToonInputData.baseInputData.positionWS,
+        unity_WorldToObject,
+        _TightsNoiseDir,
+        _TightsNoiseTex,
+        sampler_TightsNoiseTex,
+        _TightsNoiseScale,
+        _TightsNoiseSharpness,
+        _TightsNoiseJitter,
+        _UseTightsNoiseTex
+    );
+
+    // Radiance によるスケール（弱光でも完全には消さない）
+    float radianceScale = lerp(0.3, 1.0, saturate(finalSpecularRadiance));
+
+    // 線×高さプロファイル×強度
+    float highFactor = baseline * heightMask;
+    highFactor *= (1.0 + fiberNoise * _TightsSpecContrast);
+
+    // specularHigh は残すが最終合成で強制加算する
+    return highFactor * radianceScale;
+}

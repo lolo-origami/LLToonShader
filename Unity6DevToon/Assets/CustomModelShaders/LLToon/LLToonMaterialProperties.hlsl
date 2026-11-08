@@ -1,4 +1,4 @@
-// Included inside UnityPerMaterial. Keep field order for existing materials.
+// UnityPerMaterial内で読み込む。既存の材質との互換性のため宣言順を維持する。
 float4 _BaseMap_ST;
 float4 _DetailAlbedoMap_ST;
 half4 _BaseColor;
@@ -191,3 +191,17 @@ float _EnableDistancePBR;
 float _PBRFadeStart;
 float _PBRFadeEnd;
 float _PBRFarStrength;
+
+// 0：旧方式、1：新方式。
+float _LightingCalculationMode;
+
+// 新方式専用の、色の反映量と光の強さ。
+float _NewDiffuseColorStrength;
+float _NewDiffuseLightStrength;
+float _NewSpecularColorStrength;
+float _NewSpecularLightStrength;
+float _NewRimColorStrength;
+float _NewRimLightStrength;
+
+float _NewGIColorStrength;
+float _NewGILightStrength;

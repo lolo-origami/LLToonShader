@@ -30,3 +30,19 @@ RimFactor LLToonRimLighting(InputData inputData, half rimMask, float lambert, ha
 
     return Rim;
 }
+
+void LLToonRimParts(InputData inputData, half rimMask, float lambert,
+    half4 baseColor, out float3 tint, out float shape,
+    out float3 darkTint, out float darkShape)
+{
+    float edge = 1.0 - saturate(dot(inputData.viewDirectionWS, inputData.normalWS));
+    float rimDot = pow(edge, _RimPow) * rimMask;
+    rimDot *= lerp(1.0, lambert, _EnableLambert);
+    shape = _EnableRim * pow(smoothstep(0, _RimSmooth, rimDot), 5);
+    float darkDot = pow(edge, _DarkSideRimPow) * rimMask;
+    darkDot *= lerp(1.0, 1.0 - lambert, _EnableLambert);
+    darkShape = _EnableRimDS * pow(smoothstep(0, _DarkSideRimSmooth, darkDot), 5);
+    tint = LLToonColorTint(lerp(_RimColor.rgb, _RimColor.rgb * baseColor.rgb,
+        _BlendRimWithBaseColor));
+    darkTint = tint;
+}

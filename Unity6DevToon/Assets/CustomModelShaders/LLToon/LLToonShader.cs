@@ -116,6 +116,15 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
         #region BloomEmissiveLighting
 
+        protected MaterialProperty NewDiffuseColorStrengthProp { get; set; }
+        protected MaterialProperty NewDiffuseLightStrengthProp { get; set; }
+        protected MaterialProperty NewSpecularColorStrengthProp { get; set; }
+        protected MaterialProperty NewSpecularLightStrengthProp { get; set; }
+        protected MaterialProperty NewRimColorStrengthProp { get; set; }
+        protected MaterialProperty NewRimLightStrengthProp { get; set; }
+        protected MaterialProperty NewGIColorStrengthProp { get; set; }
+        protected MaterialProperty NewGILightStrengthProp { get; set; }
+        protected MaterialProperty LightingCalculationModeProp { get; set; }
         protected MaterialProperty WorldLightInfluenceProp { get; set; }
         protected MaterialProperty GIInfluenceProp { get; set; }
         protected MaterialProperty AddLightInfluenceProp { get; set; }
@@ -404,40 +413,60 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
             // Generate the foldouts
             if (filter.HasFlag(ExpandableLL.SurfaceOptions))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.SurfaceOptions, (uint)ExpandableLL.SurfaceOptions, DrawSurfaceOptionsLL);
+            }
 
             if (filter.HasFlag(ExpandableLL.TexInputs))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.TexInputs, (uint)ExpandableLL.TexInputs, DrawTexPropertiesLL);
+            }
             
             if (filter.HasFlag(ExpandableLL.ShaderInputs))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.ShaderInputs, (uint)ExpandableLL.ShaderInputs, DrawShaderPropertiesLL);
+            }
             
             if (filter.HasFlag(ExpandableLL.BRDFInputs))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.BRDFInputs, (uint)ExpandableLL.BRDFInputs, DrawBRDFPropertiesLL);
+            }
             
             if (filter.HasFlag(ExpandableLL.LightingInputs))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.LightingInputs, (uint)ExpandableLL.LightingInputs, DrawBloomEmissivePropertiesLL);
+            }
             
             if (filter.HasFlag(ExpandableLL.UniqueInputs))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.UniqueInputs, (uint)ExpandableLL.UniqueInputs, DrawUniquePropertiesLL);
+            }
             
             if (filter.HasFlag(ExpandableLL.Outline))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.OutlineInputs, (uint)ExpandableLL.Outline, DrawOutlinePropertiesLL);
+            }
             
             if (filter.HasFlag(ExpandableLL.Advanced))
+            {
                 m_MaterialScopeListLL.RegisterHeaderScope(CustomStyleLL.AdvancedLabel, (uint)ExpandableLL.Advanced, DrawAdvancedOptions);
+            }
         }
 
         static void DrawFloatToggleProperty(GUIContent styles, MaterialProperty prop)
         {
             if (prop == null)
+            {
                 return;
+            }
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.showMixedValue = prop.hasMixedValue;
             bool newValue = EditorGUILayout.Toggle(styles, prop.floatValue == 1.0f);
             if (EditorGUI.EndChangeCheck())
+            {
                 prop.floatValue = newValue ? 1.0f : 0.0f;
+            }
             EditorGUI.showMixedValue = false;
         }
 
@@ -451,14 +480,18 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         static void DrawIntSliderValue(GUIContent styles, int min, int max, MaterialProperty prop)
         {
             if (prop == null)
+            {
                 return;
+            }
 
             bool previousMixedValue = EditorGUI.showMixedValue;
             EditorGUI.showMixedValue = prop.hasMixedValue;
             EditorGUI.BeginChangeCheck();
             int newValue = EditorGUILayout.IntSlider(styles, prop.intValue, min, max);
             if (EditorGUI.EndChangeCheck())
+            {
                 prop.intValue = newValue;
+            }
             EditorGUI.showMixedValue = previousMixedValue;
         }        
         
@@ -472,14 +505,18 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         static void DrawFloatSliderValue(GUIContent styles, float min, float max, MaterialProperty prop)
         {
             if (prop == null)
+            {
                 return;
+            }
 
             bool previousMixedValue = EditorGUI.showMixedValue;
             EditorGUI.showMixedValue = prop.hasMixedValue;
             EditorGUI.BeginChangeCheck();
             float newValue = EditorGUILayout.Slider(styles, prop.floatValue, min, max);
             if (EditorGUI.EndChangeCheck())
+            {
                 prop.floatValue = newValue;
+            }
             EditorGUI.showMixedValue = previousMixedValue;
         }
         
@@ -574,6 +611,15 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             EyebrowOffsetZProp        = FindProperty("_EyebrowOffsetZ", properties, false);
             EyebrowFadePowerProp      = FindProperty("_EyebrowFadePower", properties, false);
         
+            NewDiffuseColorStrengthProp = FindProperty("_NewDiffuseColorStrength", properties, false);
+            NewDiffuseLightStrengthProp = FindProperty("_NewDiffuseLightStrength", properties, false);
+            NewSpecularColorStrengthProp = FindProperty("_NewSpecularColorStrength", properties, false);
+            NewSpecularLightStrengthProp = FindProperty("_NewSpecularLightStrength", properties, false);
+            NewRimColorStrengthProp = FindProperty("_NewRimColorStrength", properties, false);
+            NewRimLightStrengthProp = FindProperty("_NewRimLightStrength", properties, false);
+            NewGIColorStrengthProp = FindProperty("_NewGIColorStrength", properties, false);
+            NewGILightStrengthProp = FindProperty("_NewGILightStrength", properties, false);
+            LightingCalculationModeProp = FindProperty("_LightingCalculationMode", properties, false);
             WorldLightInfluenceProp = FindProperty("_WorldLightInfluence", properties, false);
             GIInfluenceProp = FindProperty("_GIInfluence", properties, false);
             LightMapInfluenceProp = FindProperty("_LightMapInfluence", properties, false);
@@ -685,15 +731,19 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             }
             // Normal Map
             if (material.HasProperty("_BumpMap"))
+            {
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._NORMALMAP, material.GetTexture("_BumpMap"));
+            }
             
         }
 
         static void SetToggleKeyword(Material material, string propertyName, string keyword)
         {
             if (material.shader.keywordSpace.FindKeyword(keyword).isValid)
+            {
                 CoreUtils.SetKeyword(material, keyword,
                     material.HasProperty(propertyName) && material.GetFloat(propertyName) > 0.5f);
+            }
         }
         
 #region Surface
@@ -701,18 +751,24 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         {
             DoPopup(Styles.surfaceType, surfaceTypeProp, Styles.surfaceTypeNames);
             if ((surfaceTypeProp != null) && ((SurfaceType)surfaceTypeProp.floatValue == SurfaceType.Transparent))
+            {
                 DoPopup(Styles.blendingMode, blendModeProp, Styles.blendModeNames);
+            }
             
             DoPopup(Styles.cullingText, cullingProp, Styles.renderFaceNames);
             DoPopup(Styles.zwriteText, zwriteProp, Styles.zwriteNames);
 
             if (ztestProp != null)
+            {
                 materialEditor.IntPopupShaderProperty(ztestProp, Styles.ztestText.text, Styles.ztestNames, Styles.ztestValues);
+            }
 
             DrawFloatToggleProperty(Styles.alphaClipText, alphaClipProp);
 
             if ((alphaClipProp != null) && (alphaCutoffProp != null) && (alphaClipProp.floatValue == 1))
+            {
                 materialEditor.ShaderProperty(alphaCutoffProp, Styles.alphaClipThresholdText, 1);
+            }
 
             DrawFloatToggleProperty(Styles.castShadowText, castShadowsProp);
             DrawFloatToggleProperty(Styles.receiveShadowText, receiveShadowsProp);
@@ -800,8 +856,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                     if (FaceCylinderBlendProperty != null)
                     {
                         if (!enableFaceCheekShade)
+                        {
                             FaceCylinderBlendProperty.floatValue = 0.0f; // トグルOFFなら強制0
                             material.SetFloat("_FaceCylinderBlend", 0f);
+                        }
 
                     }
                 }
@@ -885,7 +943,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             foreach (var obj in materialEditor.targets)
             {
                 var mat = obj as Material;
-                if (mat == null) continue;
+                if (mat == null)
+                {
+                    continue;
+                }
 
                 bool recv = mat.HasProperty("_EnableStencilShadowReceiver")
                     && mat.GetFloat("_EnableStencilShadowReceiver") > 0.5f;
@@ -1021,11 +1082,14 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                         materialEditor.ColorProperty(HairSkinColoProperty, "HairSkin Color");
                         materialEditor.FloatProperty(SharpnessProperty, "Sharpness");
                         DrawFloatSliderValue(CustomStyleLL.HairHighlightTiltOptions, -90, 90, HairHighlightTiltProperty);
-                        DrawFloatSliderValue(CustomStyleLL.SpecularIntensityOptions, 0, 2, SpecularIntensityProperty);
-                        DrawFloatSliderValue(CustomStyleLL.SpecularHighIntensityOptions, 0, 4,
-                            SpecularHighIntensityProperty);
-                        DrawFloatSliderValue(CustomStyleLL.SpecularIntensityShadowOptions, 0, 2,
-                            SpecularIntensityShadowProperty);
+                        if (LightingCalculationModeProp == null || LightingCalculationModeProp.floatValue < 0.5f)
+                        {
+                            DrawFloatSliderValue(CustomStyleLL.SpecularIntensityOptions, 0, 2, SpecularIntensityProperty);
+                            DrawFloatSliderValue(CustomStyleLL.SpecularHighIntensityOptions, 0, 4,
+                                SpecularHighIntensityProperty);
+                            DrawFloatSliderValue(CustomStyleLL.SpecularIntensityShadowOptions, 0, 2,
+                                SpecularIntensityShadowProperty);
+                        }
                     }
 
                     CoreUtils.SetKeyword(material, "ENABLE_HAIR_SPECULAR", enableHairsSpecular);
@@ -1063,23 +1127,30 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         internal static void SetMaterialSrcDstBlendPropertiesLL(Material material, UnityEngine.Rendering.BlendMode srcBlend, UnityEngine.Rendering.BlendMode dstBlend)
         {
             if (material.HasProperty("_SrcBlend"))
+            {
                 material.SetFloat("_SrcBlend", (float)srcBlend);
+            }
 
             if (material.HasProperty("_DstBlend"))
+            {
                 material.SetFloat("_DstBlend", (float)dstBlend);
+            }
         }
 #endregion
 
 #region ライティング
         protected void DrawBloomEmissivePropertiesLL(Material material)
         {
-            if (DiffuseIntensityProperty != null)
+            if (DiffuseIntensityProperty != null &&
+                (LightingCalculationModeProp == null || LightingCalculationModeProp.floatValue < 0.5f))
             {
                 DrawFloatSliderValue(CustomStyleLL.DiffuseIntensityOptions, 0, 10, DiffuseIntensityProperty);
             }
 
             if (LightDirModeProperty != null)
+            {
                 materialEditor.ShaderProperty(LightDirModeProperty, "Light Direction Mode");
+            }
 
             bool mixedLightDirMode = LightDirModeProperty != null && LightDirModeProperty.hasMixedValue;
             bool threeStepLighting = LightDirModeProperty != null && LightDirModeProperty.floatValue > 0.5f;
@@ -1091,27 +1162,83 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             if (threeStepLighting || mixedLightDirMode)
             {
                 if (LightDirLowThresholdProperty != null)
+                {
                     materialEditor.ShaderProperty(LightDirLowThresholdProperty, "Low / Mid Threshold");
+                }
                 if (LightDirHighThresholdProperty != null)
+                {
                     materialEditor.ShaderProperty(LightDirHighThresholdProperty, "Mid / High Threshold");
+                }
                 if (LightDirLowLevelProperty != null)
+                {
                     materialEditor.ShaderProperty(LightDirLowLevelProperty, "Low Light Level");
+                }
                 if (LightDirMidLevelProperty != null)
+                {
                     materialEditor.ShaderProperty(LightDirMidLevelProperty, "Mid Light Level");
+                }
                 if (LightDirHighLevelProperty != null)
+                {
                     materialEditor.ShaderProperty(LightDirHighLevelProperty, "High Light Level");
+                }
                 if (LightDirSoftnessProperty != null)
+                {
                     materialEditor.ShaderProperty(LightDirSoftnessProperty, "Light Boundary Softness");
+                }
             }
 
-            if (SpecularIntensityProperty != null && EnableHairProperty.floatValue != 1.0f)
+            if (SpecularIntensityProperty != null && EnableHairProperty.floatValue != 1.0f &&
+                (LightingCalculationModeProp == null || LightingCalculationModeProp.floatValue < 0.5f))
             {
                 DrawFloatSliderValue(CustomStyleLL.SpecularIntensityOptions, 0, 10, SpecularIntensityProperty);
             }
             
-            if (SpecularHighIntensityProperty != null && EnableHairProperty.floatValue != 1.0f)
+            if (SpecularHighIntensityProperty != null && EnableHairProperty.floatValue != 1.0f &&
+                (LightingCalculationModeProp == null || LightingCalculationModeProp.floatValue < 0.5f))
             {
                 DrawFloatSliderValue(CustomStyleLL.SpecularHighIntensityOptions, 0, 20, SpecularHighIntensityProperty);
+            }
+
+            if (LightingCalculationModeProp != null)
+            {
+                materialEditor.ShaderProperty(LightingCalculationModeProp, "Lighting Calculation");
+            }
+
+            if (LightingCalculationModeProp != null && LightingCalculationModeProp.floatValue >= 0.5f)
+            {
+                EditorGUILayout.LabelField("New Lighting Controls", EditorStyles.boldLabel);
+                if (NewDiffuseColorStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewDiffuseColorStrengthProp, "Diffuse Color Strength");
+                }
+                if (NewDiffuseLightStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewDiffuseLightStrengthProp, "Diffuse Light Strength");
+                }
+                if (NewSpecularColorStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewSpecularColorStrengthProp, "Specular Color Strength");
+                }
+                if (NewSpecularLightStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewSpecularLightStrengthProp, "Specular Light Strength");
+                }
+                if (NewRimColorStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewRimColorStrengthProp, "Rim Color Strength");
+                }
+                if (NewRimLightStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewRimLightStrengthProp, "Rim Light Strength");
+                }
+                if (NewGIColorStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewGIColorStrengthProp, "GI Color Strength");
+                }
+                if (NewGILightStrengthProp != null)
+                {
+                    materialEditor.ShaderProperty(NewGILightStrengthProp, "GI Light Strength");
+                }
             }
 
             if (WorldLightInfluenceProp != null)
@@ -1121,7 +1248,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
             if (GIInfluenceProp != null)
             {
-                DrawFloatSliderValue(CustomStyleLL.GIInfluenceOptions, 0, 10, GIInfluenceProp);
+                if (LightingCalculationModeProp == null || LightingCalculationModeProp.floatValue < 0.5f)
+                {
+                    DrawFloatSliderValue(CustomStyleLL.GIInfluenceOptions, 0, 10, GIInfluenceProp);
+                }
                 if (EnableFlatGIProp != null)
                 {
                     DrawFloatToggleProperty(CustomStyleLL.EnableFlatGIOptions, EnableFlatGIProp);
@@ -1382,7 +1512,9 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         public override void AssignNewShaderToMaterial(Material material, Shader oldShader, Shader newShader)
         {
             if (material == null)
+            {
                 throw new ArgumentNullException("material");
+            }
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
             
             SurfaceType surfaceType = SurfaceType.Opaque;
@@ -1457,14 +1589,18 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 material.SetFloat("_WorkflowMode", (float)LitGUI.WorkflowMode.Specular);
                 Texture texture = material.GetTexture("_SpecGlossMap");
                 if (texture != null)
+                {
                     material.SetTexture("_MetallicSpecGlossMap", texture);
+                }
             }
             else
             {
                 material.SetFloat("_WorkflowMode", (float)LitGUI.WorkflowMode.Metallic);
                 Texture texture = material.GetTexture("_MetallicGlossMap");
                 if (texture != null)
+                {
                     material.SetTexture("_MetallicSpecGlossMap", texture);
+                }
             }*/
         }
     }

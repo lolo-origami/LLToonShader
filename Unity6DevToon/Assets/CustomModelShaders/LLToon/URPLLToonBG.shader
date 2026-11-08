@@ -2,6 +2,16 @@ Shader "Universal Render Pipeline/URPLLToonBG"
 {
     Properties
     {
+        [Enum(Current, 0, AccumulatedLighting, 1)]
+        _LightingCalculationMode ("Lighting Calculation", Float) = 0
+        _NewGIColorStrength ("GI Color Strength (New)", Range(0, 1)) = 1
+        _NewGILightStrength ("GI Light Strength (New)", Float) = 0.125
+        _NewDiffuseColorStrength ("Diffuse Color Strength (New)", Range(0, 1)) = 1
+        _NewDiffuseLightStrength ("Diffuse Light Strength (New)", Float) = 1
+        _NewSpecularColorStrength ("Specular Color Strength (New)", Range(0, 1)) = 1
+        _NewSpecularLightStrength ("Specular Light Strength (New)", Float) = 1
+        _NewRimColorStrength ("Rim Color Strength (New)", Range(0, 1)) = 1
+        _NewRimLightStrength ("Rim Light Strength (New)", Float) = 1
         [Header(MainTex)]
         [Space(5)]
         _BaseMap ("Texture", 2D) = "white" {}
@@ -356,7 +366,13 @@ Shader "Universal Render Pipeline/URPLLToonBG"
                     depth,
                     UNITY_MATRIX_I_VP);
 
-                float normalFade = GetLLToonBGDistanceFade(positionWS);
+                // このパスではLLToonInputだけを読み込み、照明の共通処理は読み込まない。
+                float fadeStart = max(_PBRFadeStart, 0.0);
+                float fadeEnd = max(_PBRFadeEnd, fadeStart + 0.001);
+                float normalFade = _EnableDistancePBR > 0.5
+                    ? smoothstep(fadeStart, fadeEnd,
+                        distance(GetCameraPositionWS(), positionWS))
+                    : 0.0;
                 outNormalWS.xyz = normalize(lerp(
                     outNormalWS.xyz,
                     NormalizeNormalPerPixel(input.normalWS),

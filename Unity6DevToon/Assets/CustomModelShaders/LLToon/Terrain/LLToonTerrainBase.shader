@@ -4,6 +4,16 @@ Shader "Hidden/LLToonTerrain/BasePass"
 {
     Properties
     {
+        [Enum(Current, 0, AccumulatedLighting, 1)]
+        _LightingCalculationMode ("Lighting Calculation", Float) = 0
+        _NewGIColorStrength ("GI Color Strength (New)", Range(0, 1)) = 1
+        _NewGILightStrength ("GI Light Strength (New)", Float) = 0.125
+        _NewDiffuseColorStrength ("Diffuse Color Strength (New)", Range(0, 1)) = 1
+        _NewDiffuseLightStrength ("Diffuse Light Strength (New)", Float) = 1
+        _NewSpecularColorStrength ("Specular Color Strength (New)", Range(0, 1)) = 1
+        _NewSpecularLightStrength ("Specular Light Strength (New)", Float) = 1
+        _NewRimColorStrength ("Rim Color Strength (New)", Range(0, 1)) = 1
+        _NewRimLightStrength ("Rim Light Strength (New)", Float) = 1
 
         [Header(LLToon Lighting)]
         _WorldLightInfluence("World Light Influence", Range(0,1)) = 1
