@@ -83,6 +83,22 @@ TEXTURE2D(_FaceMask); SAMPLER(sampler_FaceMask);
 TEXTURE2D(_GIRampTex); SAMPLER(sampler_GIRampTex);
 //TEXTURE2D(_JitterMap);              SAMPLER(sampler_JitterMap);
 
+#if defined(LL_TOON_DISTANCE_TEXTURE_BLUR)
+// Smooth RGB only; preserve alpha for transparency and cutout silhouettes.
+inline float4 SampleLLDistanceBaseMap(float2 uv, float3 positionWS)
+{
+    float4 baseSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv);
+    float cameraDistance = distance(GetCameraPositionWS(), positionWS);
+    float startDistance = max(_DistanceMipStart, 0.0);
+    float endDistance = max(_DistanceMipEnd, startDistance + 0.001);
+    float bias = smoothstep(startDistance, endDistance, cameraDistance) * max(_DistanceMipBias, 0.0);
+    float3 blurred = SAMPLE_TEXTURE2D_BIAS(_BaseMap, sampler_BaseMap, uv, bias).rgb;
+    baseSample.rgb = bias > 0.0 ? blurred : baseSample.rgb;
+    return baseSample;
+}
+
+#endif
+
 #define SAMPLE_METALLICSPECULAR(uv) SAMPLE_TEXTURE2D(_MetallicGlossMap, sampler_MetallicGlossMap, uv).g
 
 #include "LLToonLightingData.hlsl"
@@ -216,15 +232,7 @@ inline void InitializeStandardSurfaceDataLL(float2 uv, out SurfaceData outSurfac
     outSurfaceData.metallic = _Metallic * specularMask;
     outSurfaceData.specular = _Metallic.rrr * specularMask;
     outSurfaceData.smoothness = albedoAlpha.a * _Smoothness;
-    float2 screenPos = ComputeScreenPos(screenPosData / screenPosData.w).xy;
-    float sceneDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, my_linear_clamp_sampler, screenPos);
-    half depth = Linear01Depth(sceneDepth, _ZBufferParams);
-
-    //depthのコントラスト調整
-    float D = max(0, 1.0 - depth - 0.5);
-    //D = 1 / (1 + exp(-500.0 * (D-0.5)));
-    
-    outSurfaceData.normalTS = SampleNormal(uv, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale * D);
+    outSurfaceData.normalTS = SampleNormal(uv, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale);
     outSurfaceData.occlusion = SampleOcclusion(uv);
     outSurfaceData.emission = SampleEmission(uv, _EmissionColor.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap));
 

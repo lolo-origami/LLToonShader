@@ -170,14 +170,14 @@ void NormalMapMix(float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, 
     #endif
 }
 
-void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, out half weight, out half4 mixedDiffuse, out half4 defaultSmoothness, inout half3 mixedNormal)
+void SplatmapMix(float distanceMipBias, float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, out half weight, out half4 mixedDiffuse, out half4 defaultSmoothness, inout half3 mixedNormal)
 {
     half4 diffAlbedo[4];
 
-    diffAlbedo[0] = SAMPLE_TEXTURE2D(_Splat0, sampler_Splat0, uvSplat01.xy);
-    diffAlbedo[1] = SAMPLE_TEXTURE2D(_Splat1, sampler_Splat0, uvSplat01.zw);
-    diffAlbedo[2] = SAMPLE_TEXTURE2D(_Splat2, sampler_Splat0, uvSplat23.xy);
-    diffAlbedo[3] = SAMPLE_TEXTURE2D(_Splat3, sampler_Splat0, uvSplat23.zw);
+    diffAlbedo[0] = SampleLLTerrainDistanceColor(TEXTURE2D_ARGS(_Splat0, sampler_Splat0), uvSplat01.xy, distanceMipBias);
+    diffAlbedo[1] = SampleLLTerrainDistanceColor(TEXTURE2D_ARGS(_Splat1, sampler_Splat0), uvSplat01.zw, distanceMipBias);
+    diffAlbedo[2] = SampleLLTerrainDistanceColor(TEXTURE2D_ARGS(_Splat2, sampler_Splat0), uvSplat23.xy, distanceMipBias);
+    diffAlbedo[3] = SampleLLTerrainDistanceColor(TEXTURE2D_ARGS(_Splat3, sampler_Splat0), uvSplat23.zw, distanceMipBias);
 
     // This might be a bit of a gamble -- the assumption here is that if the diffuseMap has no
     // alpha channel, then diffAlbedo[n].a = 1.0 (and _DiffuseHasAlphaN = 0.0)
@@ -407,7 +407,7 @@ void SplatmapFragment(
 
     half3 normalTS = half3(0.0h, 0.0h, 1.0h);
 #ifdef TERRAIN_SPLAT_BASEPASS
-    half3 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvMainAndLM.xy).rgb;
+    half3 albedo = SampleLLTerrainDistanceColor(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), IN.uvMainAndLM.xy, GetLLTerrainDistanceMipBias(IN.positionWS)).rgb;
     half smoothness = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uvMainAndLM.xy).a;
     half metallic = SAMPLE_TEXTURE2D(_MetallicTex, sampler_MetallicTex, IN.uvMainAndLM.xy).r;
     half alpha = 1;
@@ -431,7 +431,7 @@ void SplatmapFragment(
     half weight;
     half4 mixedDiffuse;
     half4 defaultSmoothness;
-    SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, defaultSmoothness, normalTS);
+    SplatmapMix(GetLLTerrainDistanceMipBias(IN.positionWS), IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, defaultSmoothness, normalTS);
     half3 albedo = mixedDiffuse.rgb;
 
     half4 defaultMetallic = half4(_Metallic0, _Metallic1, _Metallic2, _Metallic3);

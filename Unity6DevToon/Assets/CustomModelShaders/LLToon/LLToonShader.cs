@@ -405,6 +405,13 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         {            
             base.OnGUI(materialEditorIn, properties);
             ShaderPropertiesGUILL(materialEditor.target as Material);
+            var distanceMipBias = FindProperty("_DistanceMipBias", properties, false);
+            if (distanceMipBias != null)
+            {
+                materialEditor.ShaderProperty(distanceMipBias, new GUIContent("Distance Texture Blur Strength", "Far-distance base-color mip bias. 0 disables smoothing. Requires texture mipmaps."));
+                materialEditor.ShaderProperty(FindProperty("_DistanceMipStart", properties), "Distance Texture Blur Start");
+                materialEditor.ShaderProperty(FindProperty("_DistanceMipEnd", properties), "Distance Texture Blur End");
+            }
             var blurEnabled = FindProperty("_EnableSurfaceBlur", properties, false);
             var blurAxis = FindProperty("_SurfaceBlurAxis", properties, false);
             if (blurEnabled != null && blurAxis != null)

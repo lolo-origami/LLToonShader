@@ -8,12 +8,20 @@
 
 #include "LLToonLightingData.hlsl"
 
+// 幅0は硬い境界として扱う。分岐が平坦化されてもゼロ除算しない。
+inline float LLToonShadowTransition(float edge0, float edge1, float value)
+{
+    float width = edge1 - edge0;
+    float t = saturate((value - edge0) / max(width, 0.000001));
+    return width > 0.0 ? t * t * (3.0 - 2.0 * t) : (value > edge0 ? 1.0 : 0.0);
+}
+
 // 特定方向からの簡易シャドウ
 inline float LLToonFixedDirShadow(float3 nWS, float3 fixedDirWS, float area, float smooth, float strength)
 {
     float d = dot(normalize(nWS), normalize(fixedDirWS));   // 法線と固定方向の角度
     float v = saturate(-d * 0.5 + 0.5);                     // 0=同方向, 1=逆方向
-    float t = smoothstep(saturate(area - smooth), saturate(area + smooth), v);
+    float t = LLToonShadowTransition(saturate(area - smooth), saturate(area + smooth), v);
     return lerp(1.0, 1.0 - strength, t);
 }
 
@@ -42,32 +50,37 @@ ToonShadowFactor CalculateToonShadowFactor(
     //影範囲の決定
     tsf.SWeight = tsf.HalfLambert * 0.5  + 1.125;
     
-    half enableDarkShadowFloat = _EnableDarkShadow;
-    half darkShadowArea = _DarkShadowArea * enableDarkShadowFloat;
-    half darkShadowSmooth = _DarkShadowSmooth * enableDarkShadowFloat;
-
-#if ENABLE_INVERSE_SHADOW //Inverseの時は逆転させとく(分かりやすく)
-    darkShadowArea = 1.0 - darkShadowArea;
-#endif    
-    //影を塗り分ける範囲
     tsf.SFactor = floor(tsf.SWeight - _ShadowArea);
-    tsf.SFactorD = floor(tsf.SWeight - darkShadowArea);
-
-    // 境界線の調整
 #if ENABLE_CHARA_ON_SHADOW
-    tsf.rampS = smoothstep(0, _ShadowSmooth, (tsf.HalfLambert - _ShadowArea));
-    tsf.rampDS = smoothstep(0, darkShadowSmooth, (tsf.HalfLambert - darkShadowArea));
-#else    
-    tsf.rampS = smoothstep(0, _ShadowSmooth, (tsf.HalfLambert - _ShadowArea) * mainLightShadowArea * mask);
-    tsf.rampDS = smoothstep(0, darkShadowSmooth, (tsf.HalfLambert - clamp(darkShadowArea, 0, _ShadowArea)) * mainLightShadowArea * mask);
+    tsf.rampS = LLToonShadowTransition(0, _ShadowSmooth, tsf.HalfLambert - _ShadowArea);
+#else
+    tsf.rampS = LLToonShadowTransition(0, _ShadowSmooth,
+        (tsf.HalfLambert - _ShadowArea) * mainLightShadowArea * mask);
 #endif
 
+    // 2影オフ時は反転・境界計算を実行しない。
+    tsf.SFactorD = 1;
+    tsf.rampDS = 1;
+    UNITY_BRANCH
+    if (_EnableDarkShadow > 0.0)
+    {
+        half darkShadowArea = _DarkShadowArea;
 #if ENABLE_INVERSE_SHADOW
-    //逆から反射光を入れたいとき
-    tsf.rampDS = (clamp((tsf.rampDS - tsf.rampS), 0.0, 1.0)) * _EnableDarkShadow;
-    tsf.rampDS = (1.0 - tsf.rampDS) * _EnableDarkShadow;
-#endif    
-    
+        darkShadowArea = 1.0 - darkShadowArea;
+#endif
+        tsf.SFactorD = floor(tsf.SWeight - darkShadowArea);
+#if ENABLE_CHARA_ON_SHADOW
+        tsf.rampDS = LLToonShadowTransition(0, _DarkShadowSmooth,
+            tsf.HalfLambert - darkShadowArea);
+#else
+        tsf.rampDS = LLToonShadowTransition(0, _DarkShadowSmooth,
+            (tsf.HalfLambert - clamp(darkShadowArea, 0, _ShadowArea)) * mainLightShadowArea * mask);
+#endif
+#if ENABLE_INVERSE_SHADOW
+        tsf.rampDS = clamp(tsf.rampDS - tsf.rampS, 0.0, 1.0);
+        tsf.rampDS = 1.0 - tsf.rampDS;
+#endif
+    }
     return tsf;
 }
 
@@ -86,12 +99,14 @@ half4 ToonBaseLighting(
     half3 ShallowShadowColor = toonShadowFactor.SFactor * baseColor.rgb + (1 - toonShadowFactor.SFactor) * shadowColor.rgb;
     ShallowShadowColor.rgb = lerp(shadowColor, baseColor.rgb, toonShadowFactor.rampS);
 
-    // 境界線の調整
-    half3 tempDarkShadowColor = toonShadowFactor.SFactorD * ShallowShadowColor + (1 - toonShadowFactor.SFactorD) * darkShadowColor;
-    tempDarkShadowColor.rgb = lerp(darkShadowColor, ShallowShadowColor, toonShadowFactor.rampDS);
-
-    // _EnableDarkShadowの値を使って、DarkShadowColorをShallowShadowColorか、2影の色に切り替える
-    DarkShadowColor = lerp(ShallowShadowColor, tempDarkShadowColor, _EnableDarkShadow);
+    // 無効な2影色や中間値が、lerp(..., 0)を経由して伝播しないよう分岐する。
+    DarkShadowColor = ShallowShadowColor;
+    UNITY_BRANCH
+    if (_EnableDarkShadow > 0.0)
+    {
+        half3 tempDarkShadowColor = lerp(darkShadowColor, ShallowShadowColor, toonShadowFactor.rampDS);
+        DarkShadowColor = lerp(ShallowShadowColor, tempDarkShadowColor, saturate(_EnableDarkShadow));
+    }
 
     baseToonLightingColor.rgb = DarkShadowColor.rgb;
     
@@ -214,12 +229,14 @@ half4 ToonMaterialColorAccumulated(
     half3 ShallowShadowColor = toonShadowFactor.SFactor * baseColor.rgb + (1 - toonShadowFactor.SFactor) * shadowColor.rgb;
     ShallowShadowColor.rgb = lerp(shadowColor, baseColor.rgb, toonShadowFactor.rampS);
 
-    // 境界線の調整
-    half3 tempDarkShadowColor = toonShadowFactor.SFactorD * ShallowShadowColor + (1 - toonShadowFactor.SFactorD) * darkShadowColor;
-    tempDarkShadowColor.rgb = lerp(darkShadowColor, ShallowShadowColor, toonShadowFactor.rampDS);
-
-    // _EnableDarkShadowの値を使って、DarkShadowColorをShallowShadowColorか、2影の色に切り替える
-    DarkShadowColor = lerp(ShallowShadowColor, tempDarkShadowColor, _EnableDarkShadow);
+    // 無効な2影色や中間値が、lerp(..., 0)を経由して伝播しないよう分岐する。
+    DarkShadowColor = ShallowShadowColor;
+    UNITY_BRANCH
+    if (_EnableDarkShadow > 0.0)
+    {
+        half3 tempDarkShadowColor = lerp(darkShadowColor, ShallowShadowColor, toonShadowFactor.rampDS);
+        DarkShadowColor = lerp(ShallowShadowColor, tempDarkShadowColor, saturate(_EnableDarkShadow));
+    }
 
     baseToonLightingColor.rgb = DarkShadowColor.rgb;
 

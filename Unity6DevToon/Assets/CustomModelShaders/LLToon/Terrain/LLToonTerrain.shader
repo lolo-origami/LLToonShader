@@ -7,6 +7,9 @@ Shader "Universal Render Pipeline/LLToonTerrain"
 {
     Properties
     {
+        _DistanceMipBias ("Distance Texture Blur Strength", Range(0, 4)) = 0
+        _DistanceMipStart ("Distance Texture Blur Start", Float) = 20
+        _DistanceMipEnd ("Distance Texture Blur End", Float) = 30
         [Toggle] _EnableSurfaceBlur ("Enable Surface Direction Blur", Float) = 0
         _SurfaceBlurAxis ("Blur Axis (Object Space XYZ)", Vector) = (1,0,0,0)
         [Enum(Current, 0, AccumulatedLighting, 1)]
@@ -66,8 +69,8 @@ Shader "Universal Render Pipeline/LLToonTerrain"
         _DarkSideRimSmooth("Dark Rim Smooth", Range(0.001,10)) = 10
         _DarkSideRimPow("Dark Rim Power", Range(0,10)) = 1
         [ToggleUI] _EnableDistancePBR("Enable Distance PBR", Float) = 1
-        _PBRFadeStart("PBR Fade Start Distance", Float) = 10
-        _PBRFadeEnd("PBR Fade End Distance", Float) = 60
+        _PBRFadeStart("PBR Fade Start Distance", Float) = 20
+        _PBRFadeEnd("PBR Fade End Distance", Float) = 30
         _PBRFarStrength("Far PBR Strength", Range(0,1)) = 0.25
         [ToggleUI] _EnableEmission("Enable Emission", Float) = 0
         [HDR] _EmissionColor("Emission Color", Color) = (0,0,0,1)

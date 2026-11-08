@@ -467,7 +467,11 @@ half4 LLFragmentBG(Varyings input) : SV_Target
     }
     
 #ifdef ENABLE_EMISSION_ONLY
+#if defined(LL_TOON_DISTANCE_TEXTURE_BLUR)
+    float4 baseColor = SampleLLDistanceBaseMap(input.uv, input.positionWS) * _BaseColor;
+#else
     float4 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
+#endif
     finalColor = baseColor + lllData.EmissionColor.a * lllData.EmissionColor;
 #endif
 

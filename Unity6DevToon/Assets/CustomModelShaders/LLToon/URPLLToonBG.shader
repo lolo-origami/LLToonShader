@@ -18,6 +18,9 @@ Shader "Universal Render Pipeline/URPLLToonBG"
         [Space(5)]
         _BaseMap ("Texture", 2D) = "white" {}
         _BaseColor("Color", Color) = (1,1,1,1)
+        _DistanceMipBias ("Distance Texture Blur Strength", Range(0, 4)) = 0
+        _DistanceMipStart ("Distance Texture Blur Start", Float) = 10
+        _DistanceMipEnd ("Distance Texture Blur End", Float) = 40
         _WorldLightInfluence ("World Light Influence", range(0.0, 1.0)) = 1.0
         _GIInfluence ("GI Influence", range(0.0, 3.0)) = 1.0
         [Toggle]_EnableFlatGI ("Enable FlatGI", Float) = 0
@@ -56,8 +59,8 @@ Shader "Universal Render Pipeline/URPLLToonBG"
 
         [Header(Distance PBR)]
         [ToggleUI] _EnableDistancePBR("Enable Distance PBR", Float) = 1
-        _PBRFadeStart("PBR Fade Start Distance", Float) = 10
-        _PBRFadeEnd("PBR Fade End Distance", Float) = 60
+        _PBRFadeStart("PBR Fade Start Distance", Float) = 20
+        _PBRFadeEnd("PBR Fade End Distance", Float) = 30
         _PBRFarStrength("Far PBR Strength", Range(0, 1)) = 0.25
 
         [Header(Bloom)]
@@ -205,6 +208,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             Cull[_Cull]
 
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
                         
             #pragma exclude_renderers gles gles3 glcore
             #pragma target 4.5
@@ -272,6 +276,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             ColorMask 0
 
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
             #include "LLToonInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
@@ -309,6 +314,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             Cull[_Cull]
 
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
             #pragma target 2.0
 
             // -------------------------------------
@@ -396,6 +402,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             Cull[_Cull]
 
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
             
             #pragma exclude_renderers gles gles3 glcore
             #pragma target 4.5
@@ -437,11 +444,13 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             Blend[_SrcBlend][_DstBlend]
             
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
             
             #define LL_TOON_BG_DISTANCE_PBR 1
             #include "LLToonForwardLighting.hlsl"
 
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fog
@@ -610,6 +619,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             ZTest Equal
             ZWrite Off
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
             #pragma target 4.5
             #pragma vertex LLDirectionVertex
             #pragma fragment LLDirectionFragment
@@ -653,12 +663,14 @@ Shader "Universal Render Pipeline/URPLLToonBG"
             Blend SrcAlpha OneMinusSrcAlpha
 
             HLSLPROGRAM
+            #define LL_TOON_DISTANCE_TEXTURE_BLUR 1
             #define LL_DEPTH_COLOR_ADJUST_SHADOW_MASK 1
 
             #define LL_TOON_BG_DISTANCE_PBR 1
             #include "LLToonForwardLighting.hlsl"
 
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fog

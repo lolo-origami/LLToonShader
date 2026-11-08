@@ -111,6 +111,21 @@ void ClipHoles(float2 uv)
 }
 #endif
 
+float GetLLTerrainDistanceMipBias(float3 positionWS)
+{
+    float startDistance = max(_DistanceMipStart, 0.0);
+    float endDistance = max(_DistanceMipEnd, startDistance + 0.001);
+    return smoothstep(startDistance, endDistance, distance(GetCameraPositionWS(), positionWS)) * max(_DistanceMipBias, 0.0);
+}
+
+half4 SampleLLTerrainDistanceColor(TEXTURE2D_PARAM(tex, texSampler), float2 uv, float bias)
+{
+    half4 original = SAMPLE_TEXTURE2D(tex, texSampler, uv);
+    half3 blurred = SAMPLE_TEXTURE2D_BIAS(tex, texSampler, uv, bias).rgb;
+    original.rgb = bias > 0.0 ? blurred : original.rgb;
+    return original;
+}
+
 #define SampleLayerAlbedo(i) (SAMPLE_TEXTURE2D(_Splat##i, sampler_Splat0, splat##i##uv) * half4(_DiffuseRemapScale##i.rgb, 1.0h))
 
 #ifdef _NORMALMAP

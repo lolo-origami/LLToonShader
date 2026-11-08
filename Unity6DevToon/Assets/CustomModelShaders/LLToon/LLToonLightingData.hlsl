@@ -28,6 +28,7 @@ struct LLLightingData
     float3 ToonMaterialColor;
     float3 DiffuseLighting;
     float3 DiffuseLightColor;
+    float DiffuseLightAmount;
     float3 SpecularTint;
     float SpecularShape;
     float3 RimTint;
@@ -118,7 +119,8 @@ float3 SharedLLToonMaterialColor(LLLightingData d)
 
 float3 ComposeLLToonDiffuse(LLLightingData d)
 {
-    return SharedLLToonMaterialColor(d) * max(_NewDiffuseLightStrength, 0.0);
+    return SharedLLToonMaterialColor(d) * d.DiffuseLightAmount
+        * max(_NewDiffuseLightStrength, 0.0);
 }
 
 float3 ComposeLLToonSpecular(LLLightingData d)

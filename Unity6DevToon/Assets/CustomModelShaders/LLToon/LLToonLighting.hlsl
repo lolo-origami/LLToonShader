@@ -38,6 +38,12 @@ void LLToonLighting(
     surface.baseColor = SampleLLBaseColor(uv,
         inputData.baseInputData.normalWS,
         inputData.baseInputData.viewDirectionWS);
+#if defined(LL_TOON_DISTANCE_TEXTURE_BLUR)
+    surface.baseColor = SampleLLDistanceBaseMap(uv, inputData.baseInputData.positionWS) * _BaseColor;
+#if defined(ENABLE_TIGHTS)
+    surface.baseColor.rgb = ApplyTightsBase(surface.baseColor.rgb, inputData.baseInputData.normalWS, inputData.baseInputData.viewDirectionWS);
+#endif
+#endif
     surface.masks = SampleLLMask(uv);
     float secondColorMask = 1.0 - SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, uv).a;
     surface.shadowColor = surface.baseColor.rgb * (secondColorMask == 0

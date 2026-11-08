@@ -337,6 +337,10 @@ void LLToonLightingAccumulated(
     // 材質色には旧方式のDiffuseIntensityを掛けない。
     o.ToonMaterialColor = baseLightingColor.rgb;
     o.DiffuseLighting = lerp(float3(1, 1, 1), radiance, _WorldLightInfluence);
+    // 背景の面方向・影・光源強度を、混色の正規化で失わないよう別に保持する。
+    // キャラクターは従来の新方式の明るさを維持する。
+    o.DiffuseLightAmount = chara ? 1.0 : dot(
+        max(o.DiffuseLighting, 0.0), float3(0.2126, 0.7152, 0.0722));
     // 拡散GIと環境反射を、GI用の値として別々に保持する。
     // 反射Colorには独立したMatCapの結果だけを保持する。
     o.ReflectionColor = reflectionColor.rgb;
@@ -362,6 +366,11 @@ void LLToonLightingAccumulated(
     // 追加光の合計を、ひとつのライトとして正規化しない。
     float4 additionalMixture = LLToonAddDiffuseLighting(
         brdfData, inputData, surfaceData, meshLayers);
+    if (!chara)
+    {
+        o.DiffuseLightAmount += dot(max(additionalMixture.rgb, 0.0),
+            float3(0.2126, 0.7152, 0.0722)) * max(_AddLightIntensity, 0.0);
+    }
     colorMixture += additionalMixture * max(_AddLightIntensity, 0.0);
 #endif
 

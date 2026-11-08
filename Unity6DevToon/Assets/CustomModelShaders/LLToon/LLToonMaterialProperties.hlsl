@@ -207,3 +207,8 @@ float _NewGIColorStrength;
 float _NewGILightStrength;
 float4 _SurfaceBlurAxis;
 float _EnableSurfaceBlur;
+
+// Distance-based base-color smoothing. Zero preserves existing materials.
+float _DistanceMipBias;
+float _DistanceMipStart;
+float _DistanceMipEnd;
