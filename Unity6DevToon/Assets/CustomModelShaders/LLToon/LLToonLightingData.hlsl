@@ -152,7 +152,7 @@ float3 ComposeLLToonGI(LLLightingData d)
     // 拡散GIは直接光と同じ混色結果に、GI自身の照明量を掛ける。
     // 環境反射は拡散GIと分けて合成する。
     return (SharedLLToonMaterialColor(d) * d.GILightAmount
-        + LLToonGIColorAmount(d.IndirectReflectionColor))
+        + LLToonGIColorAmount(d.IndirectReflectionColor) * saturate(_GIReflectionStrength))
         * max(_NewGILightStrength, 0.0);
 }
 
