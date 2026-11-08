@@ -10,6 +10,7 @@ Shader "Universal Render Pipeline/LLToonTerrain"
         _DistanceMipBias ("Distance Texture Blur Strength", Range(0, 4)) = 0
         _DistanceMipStart ("Distance Texture Blur Start", Float) = 20
         _DistanceMipEnd ("Distance Texture Blur End", Float) = 30
+        [Enum(Other,0,Ground,1,Wall,2)] _KuwaharaSurfaceType ("Kuwahara Surface Type", Float) = 1
         [Toggle] _EnableSurfaceBlur ("Enable Surface Direction Blur", Float) = 0
         _SurfaceBlurAxis ("Blur Axis (Object Space XYZ)", Vector) = (1,0,0,0)
         [Enum(Current, 0, AccumulatedLighting, 1)]

@@ -20,6 +20,9 @@ Shader "Hidden/SSRaymarchFogShader"
     int _MaxIterations;
     float _MaxDistance;
     float _MinDistance;
+    float _EnableHeightFog;
+    float _FogBaseHeight;
+    float _FogHalfHeight;
     int _BlendMode;
     float _BlendIntensity;
     
@@ -46,15 +49,16 @@ Shader "Hidden/SSRaymarchFogShader"
                     {
                         break;
                     }
-                    //float3 p = rayOrigin + rayDir * t;
-#ifdef _MAIN_LIGHT_SHADOWS
-                    float4 shadowCoord = TransformWorldToShadowCoord(p);
-                    float shadow = SAMPLE_TEXTURE2D_SHADOW(_MainLightShadowmapTexture, sampler_MainLightShadowmapTexture, shadowCoord);
-                    if (shadow >= 1) alpha += step * 0.2;
-#endif
                     // 最後のステップを物体表面、または最大距離までに収める。
                     float stepLength = min(step, min(depth, _MaxDistance) - t);
-                    alpha += stepLength * 0.02;
+                    float3 p = rayOrigin + rayDir * (t + stepLength * 0.5);
+                    float density = 1.0;
+                    if (_EnableHeightFog > 0.5)
+                    {
+                        float height = max(p.y - _FogBaseHeight, 0.0);
+                        density = exp2(-height / max(_FogHalfHeight, 0.01));
+                    }
+                    alpha += stepLength * 0.02 * density;
                     t += stepLength;
                 }
                 half4 result = float4(_MainLightColor.xyz * alpha, alpha);

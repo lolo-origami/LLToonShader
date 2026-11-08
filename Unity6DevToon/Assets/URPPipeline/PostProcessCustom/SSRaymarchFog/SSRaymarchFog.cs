@@ -8,6 +8,10 @@ public class SSRaymarchFog : VolumeComponent
     public IntParameter MaxIterations = new IntParameter(64);
     public FloatParameter MaxDistance = new FloatParameter(50f);
     public FloatParameter MinDistance = new FloatParameter(0.1f);
+    public BoolParameter EnableHeightFog = new BoolParameter(false);
+    public FloatParameter FogBaseHeight = new FloatParameter(0f);
+    // 基準高度から密度が半分になるまでの高さ（ワールド単位）。
+    public MinFloatParameter FogHalfHeight = new MinFloatParameter(10f, 0.01f);
     public ColorParameter FogColor = new ColorParameter(Color.white);
     public ClampedFloatParameter FogIntensity = new ClampedFloatParameter(0.0f, 0f, 10f);
     public VolumeParameter<BlendModeEnum> BlendeMode = new VolumeParameter<BlendModeEnum>(); 

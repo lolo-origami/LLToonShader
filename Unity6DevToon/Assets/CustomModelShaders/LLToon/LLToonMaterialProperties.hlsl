@@ -207,6 +207,7 @@ float _NewGIColorStrength;
 float _NewGILightStrength;
 float4 _SurfaceBlurAxis;
 float _EnableSurfaceBlur;
+float _KuwaharaSurfaceType;
 
 // Distance-based base-color smoothing. Zero preserves existing materials.
 float _DistanceMipBias;

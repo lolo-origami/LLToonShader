@@ -25,8 +25,9 @@ public class AnisotropicKuwaharaEditor : VolumeComponentEditor
 
     public override void OnInspectorGUI()
     {
-        Field(nameof(AnisotropicKuwahara.FilterMode));
         Field(nameof(AnisotropicKuwahara.Intensity));
+        PropertyField(Unpack(serializedObject.FindProperty(nameof(AnisotropicKuwahara.ShowDirectionMap))),
+            new GUIContent("Show Flow Map", "Kuwaharaが実際に使う方向を表示。灰色は方向性なし。"));
         Field(nameof(AnisotropicKuwahara.DepthOnly));
         if (serializedObject.FindProperty("DepthOnly.m_Value").boolValue)
         {
@@ -34,22 +35,20 @@ public class AnisotropicKuwaharaEditor : VolumeComponentEditor
             Field(nameof(AnisotropicKuwahara.DepthEnd));
         }
 
-        var mode = (KuwaharaFilterMode)serializedObject.FindProperty("FilterMode.m_Value").enumValueIndex;
-        if (mode == KuwaharaFilterMode.DirectionalBlur)
-        {
-            bool material = DirectionPopup(nameof(AnisotropicKuwahara.SurfaceDirections),
-                "Direction Source", "Screen Angle", "Material Axis");
-            Field(nameof(AnisotropicKuwahara.BlurRadius));
-            Field(nameof(AnisotropicKuwahara.BlurWidth));
-            if (material)
+            Field(nameof(AnisotropicKuwahara.SurfaceKuwahara));
+            if (serializedObject.FindProperty("SurfaceKuwahara.m_Value").boolValue)
             {
-                EditorGUILayout.HelpBox("各マテリアルのSurface Direction BlurでローカルXYZ軸を指定します。", MessageType.Info);
-                Field(nameof(AnisotropicKuwahara.ShowDirectionMap));
+                EditorGUILayout.HelpBox("マテリアルのKuwahara Surface TypeでOther・Ground・Wallを指定。Intensityは全体の強度です。", MessageType.Info);
+                Field(nameof(AnisotropicKuwahara.DirectionalIntensity));
+                Field(nameof(AnisotropicKuwahara.OtherIntensity));
+                Field(nameof(AnisotropicKuwahara.Radius));
+                Field(nameof(AnisotropicKuwahara.FilterScale));
+                Field(nameof(AnisotropicKuwahara.OtherFilterScale));
+                Field(nameof(AnisotropicKuwahara.DirectionStretch));
+                Field(nameof(AnisotropicKuwahara.Sharpness));
+                Field(nameof(AnisotropicKuwahara.VarianceThreshold));
+                return;
             }
-            else Field(nameof(AnisotropicKuwahara.DirectionAngle));
-        }
-        else
-        {
             bool fixedDirection = DirectionPopup(nameof(AnisotropicKuwahara.FixedDirection),
                 "Direction Source", "Image Structure", "Screen Angle");
             Field(nameof(AnisotropicKuwahara.Radius));
@@ -66,6 +65,5 @@ public class AnisotropicKuwaharaEditor : VolumeComponentEditor
             }
             Field(nameof(AnisotropicKuwahara.Sharpness));
             Field(nameof(AnisotropicKuwahara.VarianceThreshold));
-        }
     }
 }

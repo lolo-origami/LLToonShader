@@ -306,8 +306,8 @@ half4 LLFragmentChara(Varyings input) : SV_Target
 #endif
 
 #if defined(LL_DEPTH_COLOR_ADJUST_SHADOW_MASK)
-    half2 masks = CalculateLLColorAdjustMasks(inputData.baseInputData, surfaceData);
-    return half4(masks, 0, OutputAlpha(surfaceData.alpha, _Surface));
+    // 日陰/AO用の色補正は背景のみ。キャラの画素では背景マスクも遮蔽する。
+    return half4(0, 0, 0, OutputAlpha(surfaceData.alpha, _Surface));
 #else
     //ライティング
     LLLightingData lllData;

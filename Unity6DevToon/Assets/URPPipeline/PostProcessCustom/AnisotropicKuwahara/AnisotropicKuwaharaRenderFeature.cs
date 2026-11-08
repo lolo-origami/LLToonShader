@@ -12,7 +12,7 @@ public class AnisotropicKuwaharaRenderFeature : LLPostProcessRFBase
         // Reinsert this last-added feature at its actual execution position.
         LLPostProcessRFManager.Instance.UnregisterFeature(this);
         LLPostProcessRFManager.Instance.RegisterFeature(this);
-        CoreUtils.Destroy(_pass?.Material);
+        _pass?.DisposeMaterials();
         _pass = new AnisotropicKuwaharaPass(settings.renderPassEvent, settings.shader);
         _directionPass = new SurfaceBlurDirectionPass(settings.renderPassEvent);
     }
@@ -29,7 +29,7 @@ public class AnisotropicKuwaharaRenderFeature : LLPostProcessRFBase
         if (!IsActiveThisFrame(ref renderingData)) return;
         _pass.ConfigureBufferPolicy(settings.IsRestore, settings.RestoreName, settings.IsSave, settings.SaveName);
         var component = VolumeManager.instance.stack.GetComponent<AnisotropicKuwahara>();
-        if (component.FilterMode.value == KuwaharaFilterMode.DirectionalBlur && component.SurfaceDirections.value)
+        if (component.SurfaceKuwahara.value)
             renderer.EnqueuePass(_directionPass);
         renderer.EnqueuePass(_pass);
         if (FeatureIndex() == LLPostProcessRFManager.Instance.GetLastActiveIndexThisFrame(ref renderingData))
@@ -38,7 +38,7 @@ public class AnisotropicKuwaharaRenderFeature : LLPostProcessRFBase
 
     protected override void OnDispose(bool disposing)
     {
-        CoreUtils.Destroy(_pass?.Material);
+        _pass?.DisposeMaterials();
         _pass = null;
     }
 }

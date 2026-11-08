@@ -1,26 +1,10 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public enum KuwaharaFilterMode { Kuwahara, DirectionalBlur }
-
-[System.Serializable]
-public class KuwaharaFilterModeParameter : VolumeParameter<KuwaharaFilterMode>
-{
-    public KuwaharaFilterModeParameter(KuwaharaFilterMode value) : base(value) { }
-}
-
 [System.Serializable, VolumeComponentMenu("LL Post Process/Anisotropic Kuwahara")]
 public class AnisotropicKuwahara : VolumeComponent
 {
-    [Tooltip("Kuwaharaと通常の方向ブラーを切り替える。")]
-    public KuwaharaFilterModeParameter FilterMode = new KuwaharaFilterModeParameter(KuwaharaFilterMode.Kuwahara);
-    [Tooltip("方向ブラーの片側の長さ。1080p基準のピクセル数。角度はDirection Angleで指定。")]
-    public ClampedFloatParameter BlurRadius = new ClampedFloatParameter(20f, 0f, 128f);
-    [Tooltip("指定方向に対する横幅の比率。0で線状、1で縦横同程度。背景を面として柔らかくする場合は0.3〜0.6。")]
-    public ClampedFloatParameter BlurWidth = new ClampedFloatParameter(0f, 0f, 1f);
-    [Tooltip("マテリアルで指定したローカル軸に沿って方向ブラーを掛ける。")]
-    public BoolParameter SurfaceDirections = new BoolParameter(false);
-    [Tooltip("面方向モードで方向マップを表示。色が方向を表す。")]
+    [Tooltip("Kuwaharaが使う方向を表示。赤緑が方向、青が方向性の有無。灰色は方向性なし。")]
     public BoolParameter ShowDirectionMap = new BoolParameter(false);
     [Tooltip("元画像とフィルター結果の混合率。0で無効。")]
     public ClampedFloatParameter Intensity = new ClampedFloatParameter(0f, 0f, 1f);
@@ -49,5 +33,12 @@ public class AnisotropicKuwahara : VolumeComponent
     [Tooltip("領域の分散を比較する基準値。小さいほど均一な領域を優先。")]
     public ClampedFloatParameter VarianceThreshold = new ClampedFloatParameter(0.01f, 0.0001f, 1f);
 
-    public bool IsActive => active && Intensity.value > 0f;
+    [Tooltip("路面・壁は指定方向、その他は円形のKuwaharaを使用。")]
+    public BoolParameter SurfaceKuwahara = new BoolParameter(true);
+    public ClampedFloatParameter DirectionalIntensity = new ClampedFloatParameter(1f, 0f, 1f);
+    public ClampedFloatParameter OtherIntensity = new ClampedFloatParameter(1f, 0f, 1f);
+    [Tooltip("その他の円形Kuwaharaの範囲倍率。")]
+    public ClampedFloatParameter OtherFilterScale = new ClampedFloatParameter(1f, 0.25f, 4f);
+
+    public bool IsActive => active && (Intensity.value > 0f || ShowDirectionMap.value);
 }

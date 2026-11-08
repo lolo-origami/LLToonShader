@@ -412,15 +412,9 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 materialEditor.ShaderProperty(FindProperty("_DistanceMipStart", properties), "Distance Texture Blur Start");
                 materialEditor.ShaderProperty(FindProperty("_DistanceMipEnd", properties), "Distance Texture Blur End");
             }
-            var blurEnabled = FindProperty("_EnableSurfaceBlur", properties, false);
-            var blurAxis = FindProperty("_SurfaceBlurAxis", properties, false);
-            if (blurEnabled != null && blurAxis != null)
-            {
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField("Surface Direction Blur", EditorStyles.boldLabel);
-                materialEditorIn.ShaderProperty(blurEnabled, "Enable Surface Direction Blur");
-                materialEditorIn.VectorProperty(blurAxis, "Blur Axis (Object Space XYZ)");
-            }
+            var surfaceType = FindProperty("_KuwaharaSurfaceType", properties, false);
+            if (surfaceType != null)
+                materialEditorIn.ShaderProperty(surfaceType, "Kuwahara Surface Type");
         }
         
         public override void OnOpenGUI(Material material, MaterialEditor materialEditor)

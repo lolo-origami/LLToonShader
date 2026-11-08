@@ -232,7 +232,15 @@ inline void InitializeStandardSurfaceDataLL(float2 uv, out SurfaceData outSurfac
     outSurfaceData.metallic = _Metallic * specularMask;
     outSurfaceData.specular = _Metallic.rrr * specularMask;
     outSurfaceData.smoothness = albedoAlpha.a * _Smoothness;
-    outSurfaceData.normalTS = SampleNormal(uv, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale);
+    float2 screenPos = ComputeScreenPos(screenPosData / screenPosData.w).xy;
+    float sceneDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, my_linear_clamp_sampler, screenPos);
+    half depth = Linear01Depth(sceneDepth, _ZBufferParams);
+
+    //depthのコントラスト調整
+    float D = max(0, 1.0 - depth - 0.5);
+    //D = 1 / (1 + exp(-500.0 * (D-0.5)));
+    
+    outSurfaceData.normalTS = SampleNormal(uv, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap), _BumpScale * D);
     outSurfaceData.occlusion = SampleOcclusion(uv);
     outSurfaceData.emission = SampleEmission(uv, _EmissionColor.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap));
 

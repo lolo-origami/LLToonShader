@@ -14,6 +14,9 @@ public class SSRaymarchFogPass : LLPostProcessPassBase
     private static readonly int _maxIterationsId = Shader.PropertyToID("_MaxIterations");
     private static readonly int _maxDistanceId = Shader.PropertyToID("_MaxDistance");
     private static readonly int _minDistanceId = Shader.PropertyToID("_MinDistance");
+    private static readonly int _enableHeightFogId = Shader.PropertyToID("_EnableHeightFog");
+    private static readonly int _fogBaseHeightId = Shader.PropertyToID("_FogBaseHeight");
+    private static readonly int _fogHalfHeightId = Shader.PropertyToID("_FogHalfHeight");
     private static readonly int _fogIntensityId = Shader.PropertyToID("_FogIntensity");
     private static readonly int _fogColorId = Shader.PropertyToID("_FogColor");
     private static readonly int _fogTempTexId = Shader.PropertyToID("_FogTempTex");
@@ -29,6 +32,9 @@ public class SSRaymarchFogPass : LLPostProcessPassBase
         public int maxIterations;
         public float maxDistance;
         public float minDistance;
+        public bool enableHeightFog;
+        public float fogBaseHeight;
+        public float fogHalfHeight;
         public float fogIntensity;
         public Color fogColor;
         public int blendMode;
@@ -106,6 +112,9 @@ public class SSRaymarchFogPass : LLPostProcessPassBase
             pass0.maxIterations = comp.MaxIterations.value;
             pass0.maxDistance = comp.MaxDistance.value;
             pass0.minDistance = comp.MinDistance.value;
+            pass0.enableHeightFog = comp.EnableHeightFog.value;
+            pass0.fogBaseHeight = comp.FogBaseHeight.value;
+            pass0.fogHalfHeight = comp.FogHalfHeight.value;
             pass0.fogIntensity = comp.FogIntensity.value;
             pass0.fogColor = comp.FogColor.value;
             pass0.blendMode = (int)comp.BlendeMode.value;
@@ -120,6 +129,9 @@ public class SSRaymarchFogPass : LLPostProcessPassBase
                 mat.SetInt(_maxIterationsId, data.maxIterations);
                 mat.SetFloat(_maxDistanceId, data.maxDistance);
                 mat.SetFloat(_minDistanceId, data.minDistance);
+                mat.SetFloat(_enableHeightFogId, data.enableHeightFog ? 1f : 0f);
+                mat.SetFloat(_fogBaseHeightId, data.fogBaseHeight);
+                mat.SetFloat(_fogHalfHeightId, data.fogHalfHeight);
                 mat.SetFloat(_fogIntensityId, data.fogIntensity);
                 mat.SetColor(_fogColorId, data.fogColor);
                 mat.SetInt(_blendModeId, data.blendMode);

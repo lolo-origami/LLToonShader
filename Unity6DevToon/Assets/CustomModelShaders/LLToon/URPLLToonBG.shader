@@ -2,6 +2,7 @@ Shader "Universal Render Pipeline/URPLLToonBG"
 {
     Properties
     {
+        [Enum(Other,0,Ground,1,Wall,2)] _KuwaharaSurfaceType ("Kuwahara Surface Type", Float) = 0
         [Toggle] _EnableSurfaceBlur ("Enable Surface Direction Blur", Float) = 0
         _SurfaceBlurAxis ("Blur Axis (Object Space XYZ)", Vector) = (0,1,0,0)
         [Enum(Current, 0, AccumulatedLighting, 1)]

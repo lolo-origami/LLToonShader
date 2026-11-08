@@ -3,8 +3,16 @@
 
 float4 LLSurfaceBlurDirection(float3 positionWS)
 {
-    if (_EnableSurfaceBlur < 0.5 || dot(_SurfaceBlurAxis.xyz, _SurfaceBlurAxis.xyz) < 1e-8) discard;
-    float3 axisWS = TransformObjectToWorldDir(normalize(_SurfaceBlurAxis.xyz));
+    // Explicit material classification keeps props out of the wall category.
+    if (_KuwaharaSurfaceType < 0.5) return float4(0, 0, 0, 1);
+    float3 axisWS = float3(0, 1, 0);
+    if (_KuwaharaSurfaceType < 1.5)
+    {
+        float3 cameraForward = -UNITY_MATRIX_V[2].xyz;
+        axisWS = float3(cameraForward.x, 0, cameraForward.z);
+        if (dot(axisWS, axisWS) < 1e-8) axisWS = float3(0, 0, 1);
+        axisWS = normalize(axisWS);
+    }
     float4 p = TransformWorldToHClip(positionWS);
     float4 q = TransformWorldToHClip(positionWS + axisWS * 0.1);
     if (p.w <= 0 || q.w <= 0) discard;

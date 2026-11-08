@@ -14,15 +14,12 @@ Shader "Hidden/AnisotropicKuwaharaShader"
         float _TensorSigma;
         float _KuwaharaIntensity;
         float _KuwaharaSampleScale;
-        float _DirectionalBlurRadius;
-        int _DirectionalBlurStage;
-        float _DirectionalBlurWidth;
-        TEXTURE2D_X(_DirectionalBlurOriginal);
+        float4 _SurfaceKuwahara; // enabled, directional intensity, other intensity, other scale
+        float _KuwaharaShowFlowMap;
         float4 _KuwaharaDirection; // fixed mode, direction XY, stretch
         float4 _KuwaharaDepthParams; // enabled, start distance, end distance, unused
         TEXTURE2D_X(_KuwaharaTensor);
         TEXTURE2D_X(_SurfaceDirectionMap);
-        float4 _SurfaceDirectionParams; // enabled, wall cos, wall sin, debug
 
 
         float3 ReadColor(float2 uv)
@@ -85,46 +82,6 @@ Shader "Hidden/AnisotropicKuwaharaShader"
             return _KuwaharaIntensity * (end > start ? smoothstep(start, end, distance) : step(start, distance));
         }
 
-        float4 DirectionalBlur(Varyings input) : SV_Target
-        {
-            UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-            float2 uv = input.texcoord;
-            float4 original = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv, 0);
-            if (_DirectionalBlurStage == 2)
-                original = SAMPLE_TEXTURE2D_X_LOD(_DirectionalBlurOriginal, sampler_LinearClamp, uv, 0);
-            float2 direction = _KuwaharaDirection.yz;
-            if (_SurfaceDirectionParams.x > 0.5)
-            {
-                float4 map = SAMPLE_TEXTURE2D_X_LOD(_SurfaceDirectionMap, sampler_PointClamp, uv, 0);
-                if (_SurfaceDirectionParams.w > 0.5)
-                    return float4(map.xy * 0.5 + 0.5, map.z, 1);
-                if (map.w < 0.5) return original;
-                direction = map.xy;
-            }
-            float intensity = _DirectionalBlurStage == 1 ? 1 : DepthIntensity(uv);
-            float radius = _DirectionalBlurRadius;
-            if (_DirectionalBlurStage == 2)
-            {
-                direction = float2(-direction.y, direction.x);
-                radius *= _DirectionalBlurWidth;
-            }
-            if (intensity <= 0 || radius <= 0) return original;
-            // Symmetric 1D Gaussian, independent of image gradients and sector variance.
-            // Adaptive tap count keeps gaps <= 1 pixel up to radius 32.
-            int samples = (int)clamp(ceil(radius), 1, 64);
-            float3 sum = 0;
-            float weightSum = 0;
-            [loop] for (int tap = -samples; tap <= samples; ++tap)
-            {
-                float position = (float)tap / samples;
-                float weight = exp(-4.5 * position * position);
-                float2 offset = direction * (position * radius) * _KuwaharaTexelSize;
-                sum += ReadColor(uv + offset) * weight;
-                weightSum += weight;
-            }
-            return float4(lerp(original.rgb, sum / weightSum, intensity), original.a);
-        }
-
         // Kyprianidis et al.: smoothed structure tensor -> tangent-aligned
         // ellipse -> eight overlapping polynomial sectors -> variance blend.
         // https://www.kyprianidis.com/p/npar2010/
@@ -147,15 +104,29 @@ Shader "Hidden/AnisotropicKuwaharaShader"
                     : step(start, eyeDepth);
                 intensity *= mask;
             }
+            bool surfaceMode = _SurfaceKuwahara.x > 0.5;
+            float4 surface = float4(0, 0, 0, 0);
+            if (surfaceMode)
+            {
+                surface = SAMPLE_TEXTURE2D_X_LOD(_SurfaceDirectionMap, sampler_PointClamp, uv, 0);
+                intensity *= surface.z > 0.5 && surface.w > 0.5 ? _SurfaceKuwahara.y : _SurfaceKuwahara.z;
+            }
+            float sampleScale = surfaceMode && surface.z < 0.5
+                ? _SurfaceKuwahara.w * _KuwaharaSampleScale : _KuwaharaSampleScale;
             // Near pixels retain their original color and skip the expensive kernel.
-            if (intensity <= 0) return original;
-            bool fixedDirection = _KuwaharaDirection.x > 0.5;
+            if (intensity <= 0 && _KuwaharaShowFlowMap < 0.5) return original;
+            bool fixedDirection = surfaceMode || _KuwaharaDirection.x > 0.5;
             float2 tangent;
             float stretch;
             if (fixedDirection)
             {
-                tangent = _KuwaharaDirection.yz;
-                stretch = _KuwaharaDirection.w;
+                tangent = surfaceMode ? float2(1, 0) : _KuwaharaDirection.yz;
+                stretch = surfaceMode ? 1 : _KuwaharaDirection.w;
+                if (surfaceMode && surface.z > 0.5 && surface.w > 0.5)
+                {
+                    tangent = surface.xy;
+                    stretch = _KuwaharaDirection.w;
+                }
             }
             else
             {
@@ -170,6 +141,15 @@ Shader "Hidden/AnisotropicKuwaharaShader"
             sincos(angle, s, c);
             tangent = float2(-s, c);
             stretch = clamp((_KuwaharaParams.y + anisotropy) / _KuwaharaParams.y, 1, 2);
+            }
+            if (_KuwaharaShowFlowMap > 0.5)
+            {
+                if (surfaceMode && (surface.z < 0.5 || surface.w < 0.5))
+                    return float4(0.5, 0.5, 0.5, 1);
+                // Directions are unoriented axes: choose a stable sign for display.
+                float2 flow = tangent;
+                if (flow.y < 0) flow = -flow;
+                return float4(flow * 0.5 + 0.5, 1, 1);
             }
             float2 normal = float2(-tangent.y, tangent.x);
             float a = _KuwaharaParams.x * stretch;
@@ -216,7 +196,7 @@ Shader "Hidden/AnisotropicKuwaharaShader"
                 float2 sampleOffset = fixedDirection
                     ? tangent * (offset.x * stretch) + normal * (offset.y / stretch)
                     : offset;
-                float3 color = ReadColor(uv + sampleOffset * _KuwaharaTexelSize * _KuwaharaSampleScale);
+                float3 color = ReadColor(uv + sampleOffset * _KuwaharaTexelSize * sampleScale);
                 [unroll] for (int sampleSector = 0; sampleSector < 8; ++sampleSector)
                 {
                     float w = weights[sampleSector] * gaussian;
@@ -275,15 +255,7 @@ Shader "Hidden/AnisotropicKuwaharaShader"
             #pragma fragment Filter
             ENDHLSL
         }
-        Pass
-        {
-            Name "Directional Gaussian Blur"
-            HLSLPROGRAM
-            #pragma target 4.5
-            #pragma vertex Vert
-            #pragma fragment DirectionalBlur
-            ENDHLSL
-        }
+
 
     }
 }
