@@ -9,6 +9,7 @@ public class GuidedFilterRenderFeature : LLPostProcessRFBase
     protected override void OnCreate()
     {
         this.name = "GuidedFilter";
+        _pass?.Dispose();
         _pass = new GuidedFilterPass(settings.renderPassEvent, settings.shader);
     }
 
@@ -38,6 +39,7 @@ public class GuidedFilterRenderFeature : LLPostProcessRFBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        CoreUtils.Destroy(_pass?.GuidedFilterMaterial);
+        _pass?.Dispose();
+        _pass = null;
     }
 }

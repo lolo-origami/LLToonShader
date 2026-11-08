@@ -16,6 +16,9 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
     private static readonly int SampleScaleId = Shader.PropertyToID("_KuwaharaSampleScale");
     private static readonly int DirectionId = Shader.PropertyToID("_KuwaharaDirection");
     private static readonly int BlurRadiusId = Shader.PropertyToID("_DirectionalBlurRadius");
+    private static readonly int BlurStageId = Shader.PropertyToID("_DirectionalBlurStage");
+    private static readonly int BlurWidthId = Shader.PropertyToID("_DirectionalBlurWidth");
+    private static readonly int BlurOriginalId = Shader.PropertyToID("_DirectionalBlurOriginal");
     private static readonly int SurfaceParamsId = Shader.PropertyToID("_SurfaceDirectionParams");
     private static readonly int DirectionMapId = Shader.PropertyToID("_SurfaceDirectionMap");
     public Material Material { get; }
@@ -25,6 +28,7 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
         public Material material;
         public TextureHandle source, tensor;
         public TextureHandle directionMap;
+        public TextureHandle original;
         public Vector2 texelSize;
         public Vector4 parameters;
         public Vector4 depthParameters;
@@ -33,6 +37,8 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
         public float sigma, intensity;
         public float sampleScale;
         public float blurRadius;
+        public float blurWidth;
+        public int blurStage;
         public int passIndex;
     }
 
@@ -62,8 +68,21 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
             {
                 if (!TryGetSavedBuffer(frameData, SurfaceBlurDirectionPass.BufferName, out directions)) return;
             }
-            AddPass(renderGraph, "Directional Gaussian Blur", source, destination, TextureHandle.nullHandle,
-                4, component, component.DepthOnly.value ? resourceData.cameraDepthTexture : TextureHandle.nullHandle, directions);
+            var depth = component.DepthOnly.value ? resourceData.cameraDepthTexture : TextureHandle.nullHandle;
+            if (component.BlurWidth.value > 0f)
+            {
+                var blurDesc = renderGraph.GetTextureDesc(source);
+                blurDesc.name = "Surface Blur Along Axis";
+                blurDesc.msaaSamples = MSAASamples.None;
+                blurDesc.depthBufferBits = DepthBits.None;
+                var along = renderGraph.CreateTexture(blurDesc);
+                AddPass(renderGraph, "Surface Blur: Along Axis", source, along, TextureHandle.nullHandle,
+                    4, component, depth, directions, TextureHandle.nullHandle, 1);
+                AddPass(renderGraph, "Surface Blur: Across Axis + Composite", along, destination, TextureHandle.nullHandle,
+                    4, component, depth, directions, source, 2);
+            }
+            else AddPass(renderGraph, "Directional Gaussian Blur", source, destination, TextureHandle.nullHandle,
+                4, component, depth, directions);
             return;
         }
         if (component.FixedDirection.value)
@@ -95,12 +114,12 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
 
     private void AddPass(RenderGraph graph, string label, TextureHandle source, TextureHandle destination,
         TextureHandle tensor, int index, AnisotropicKuwahara component, TextureHandle depth = default,
-        TextureHandle directionMap = default)
+        TextureHandle directionMap = default, TextureHandle original = default, int blurStage = 0)
     {
         // Named restore/save can refer to the same texture. Render into a fresh
         // texture first, then copy back, keeping the common chain policy intact.
         var target = destination;
-        if (source.Equals(destination))
+        if (source.Equals(destination) || (original.IsValid() && original.Equals(destination)))
         {
             var desc = graph.GetTextureDesc(source);
             desc.name = "Kuwahara Feedback Safe Output";
@@ -114,11 +133,15 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
             if (tensor.IsValid()) builder.UseTexture(tensor, AccessFlags.Read);
             if (depth.IsValid()) builder.UseTexture(depth, AccessFlags.Read);
             if (directionMap.IsValid()) builder.UseTexture(directionMap, AccessFlags.Read);
+            if (original.IsValid()) builder.UseTexture(original, AccessFlags.Read);
             builder.SetRenderAttachment(target, 0, AccessFlags.Write);
             data.material = Material;
             data.source = source;
             data.tensor = tensor;
             data.directionMap = directionMap;
+            data.original = original;
+            data.blurStage = blurStage;
+            data.blurWidth = component.BlurWidth.value;
             data.passIndex = index;
             data.texelSize = GetTexelSize(graph, source);
             data.parameters = new Vector4(component.Radius.value, component.Alpha.value,
@@ -145,6 +168,9 @@ public class AnisotropicKuwaharaPass : LLPostProcessPassBase
                 d.material.SetFloat(SampleScaleId, d.sampleScale);
                 d.material.SetVector(DirectionId, d.directionParameters);
                 d.material.SetFloat(BlurRadiusId, d.blurRadius);
+                d.material.SetInt(BlurStageId, d.blurStage);
+                d.material.SetFloat(BlurWidthId, d.blurWidth);
+                if (d.original.IsValid()) d.material.SetTexture(BlurOriginalId, d.original);
                 d.material.SetVector(SurfaceParamsId, d.surfaceParameters);
                 if (d.directionMap.IsValid()) d.material.SetTexture(DirectionMapId, d.directionMap);
                 if (d.tensor.IsValid()) d.material.SetTexture(TensorId, d.tensor);

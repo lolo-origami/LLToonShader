@@ -40,6 +40,7 @@ public class AnisotropicKuwaharaEditor : VolumeComponentEditor
             bool material = DirectionPopup(nameof(AnisotropicKuwahara.SurfaceDirections),
                 "Direction Source", "Screen Angle", "Material Axis");
             Field(nameof(AnisotropicKuwahara.BlurRadius));
+            Field(nameof(AnisotropicKuwahara.BlurWidth));
             if (material)
             {
                 EditorGUILayout.HelpBox("各マテリアルのSurface Direction BlurでローカルXYZ軸を指定します。", MessageType.Info);

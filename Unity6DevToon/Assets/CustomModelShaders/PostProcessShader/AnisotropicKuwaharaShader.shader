@@ -15,6 +15,9 @@ Shader "Hidden/AnisotropicKuwaharaShader"
         float _KuwaharaIntensity;
         float _KuwaharaSampleScale;
         float _DirectionalBlurRadius;
+        int _DirectionalBlurStage;
+        float _DirectionalBlurWidth;
+        TEXTURE2D_X(_DirectionalBlurOriginal);
         float4 _KuwaharaDirection; // fixed mode, direction XY, stretch
         float4 _KuwaharaDepthParams; // enabled, start distance, end distance, unused
         TEXTURE2D_X(_KuwaharaTensor);
@@ -87,6 +90,8 @@ Shader "Hidden/AnisotropicKuwaharaShader"
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
             float2 uv = input.texcoord;
             float4 original = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv, 0);
+            if (_DirectionalBlurStage == 2)
+                original = SAMPLE_TEXTURE2D_X_LOD(_DirectionalBlurOriginal, sampler_LinearClamp, uv, 0);
             float2 direction = _KuwaharaDirection.yz;
             if (_SurfaceDirectionParams.x > 0.5)
             {
@@ -96,18 +101,24 @@ Shader "Hidden/AnisotropicKuwaharaShader"
                 if (map.w < 0.5) return original;
                 direction = map.xy;
             }
-            float intensity = DepthIntensity(uv);
-            if (intensity <= 0 || _DirectionalBlurRadius <= 0) return original;
+            float intensity = _DirectionalBlurStage == 1 ? 1 : DepthIntensity(uv);
+            float radius = _DirectionalBlurRadius;
+            if (_DirectionalBlurStage == 2)
+            {
+                direction = float2(-direction.y, direction.x);
+                radius *= _DirectionalBlurWidth;
+            }
+            if (intensity <= 0 || radius <= 0) return original;
             // Symmetric 1D Gaussian, independent of image gradients and sector variance.
             // Adaptive tap count keeps gaps <= 1 pixel up to radius 32.
-            int samples = (int)clamp(ceil(_DirectionalBlurRadius), 1, 64);
+            int samples = (int)clamp(ceil(radius), 1, 64);
             float3 sum = 0;
             float weightSum = 0;
             [loop] for (int tap = -samples; tap <= samples; ++tap)
             {
                 float position = (float)tap / samples;
                 float weight = exp(-4.5 * position * position);
-                float2 offset = direction * (position * _DirectionalBlurRadius) * _KuwaharaTexelSize;
+                float2 offset = direction * (position * radius) * _KuwaharaTexelSize;
                 sum += ReadColor(uv + offset) * weight;
                 weightSum += weight;
             }

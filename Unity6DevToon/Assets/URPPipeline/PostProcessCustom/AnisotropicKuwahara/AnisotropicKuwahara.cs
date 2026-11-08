@@ -16,6 +16,8 @@ public class AnisotropicKuwahara : VolumeComponent
     public KuwaharaFilterModeParameter FilterMode = new KuwaharaFilterModeParameter(KuwaharaFilterMode.Kuwahara);
     [Tooltip("方向ブラーの片側の長さ。1080p基準のピクセル数。角度はDirection Angleで指定。")]
     public ClampedFloatParameter BlurRadius = new ClampedFloatParameter(20f, 0f, 128f);
+    [Tooltip("指定方向に対する横幅の比率。0で線状、1で縦横同程度。背景を面として柔らかくする場合は0.3〜0.6。")]
+    public ClampedFloatParameter BlurWidth = new ClampedFloatParameter(0f, 0f, 1f);
     [Tooltip("マテリアルで指定したローカル軸に沿って方向ブラーを掛ける。")]
     public BoolParameter SurfaceDirections = new BoolParameter(false);
     [Tooltip("面方向モードで方向マップを表示。色が方向を表す。")]
