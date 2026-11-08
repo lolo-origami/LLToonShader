@@ -7,6 +7,8 @@ Shader "Universal Render Pipeline/LLToonTerrain"
 {
     Properties
     {
+        [Toggle] _EnableSurfaceBlur ("Enable Surface Direction Blur", Float) = 0
+        _SurfaceBlurAxis ("Blur Axis (Object Space XYZ)", Vector) = (1,0,0,0)
         [Enum(Current, 0, AccumulatedLighting, 1)]
         _LightingCalculationMode ("Lighting Calculation", Float) = 0
         _NewGIColorStrength ("GI Color Strength (New)", Range(0, 1)) = 1
@@ -385,6 +387,31 @@ Shader "Universal Render Pipeline/LLToonTerrain"
             ENDHLSL
         }
 
+        Pass
+        {
+            Name "SurfaceBlurDirection"
+            Tags { "LightMode" = "LLSurfaceBlurDirection" }
+            ZTest Equal
+            ZWrite Off
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma vertex SplatmapVert
+            #pragma fragment LLTerrainDirectionFragment
+            #pragma multi_compile_instancing
+            #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
+            #include "LLToonTerrainLitInput.hlsl"
+            #include "LLToonTerrainLitPasses.hlsl"
+            #include "../LLSurfaceBlurDirection.hlsl"
+            float4 LLTerrainDirectionFragment(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                #ifdef _ALPHATEST_ON
+                ClipHoles(input.uvMainAndLM.xy);
+                #endif
+                return LLSurfaceBlurDirection(input.positionWS);
+            }
+            ENDHLSL
+        }
         UsePass "Hidden/Nature/Terrain/Utilities/PICKING"
     }
     Dependency "AddPassShader" = "Hidden/LLToonTerrain/AddPass"

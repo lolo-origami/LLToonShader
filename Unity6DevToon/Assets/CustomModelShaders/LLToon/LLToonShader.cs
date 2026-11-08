@@ -405,6 +405,15 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         {            
             base.OnGUI(materialEditorIn, properties);
             ShaderPropertiesGUILL(materialEditor.target as Material);
+            var blurEnabled = FindProperty("_EnableSurfaceBlur", properties, false);
+            var blurAxis = FindProperty("_SurfaceBlurAxis", properties, false);
+            if (blurEnabled != null && blurAxis != null)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("Surface Direction Blur", EditorStyles.boldLabel);
+                materialEditorIn.ShaderProperty(blurEnabled, "Enable Surface Direction Blur");
+                materialEditorIn.VectorProperty(blurAxis, "Blur Axis (Object Space XYZ)");
+            }
         }
         
         public override void OnOpenGUI(Material material, MaterialEditor materialEditor)

@@ -2,6 +2,8 @@ Shader "Universal Render Pipeline/URPLLToonBG"
 {
     Properties
     {
+        [Toggle] _EnableSurfaceBlur ("Enable Surface Direction Blur", Float) = 0
+        _SurfaceBlurAxis ("Blur Axis (Object Space XYZ)", Vector) = (0,1,0,0)
         [Enum(Current, 0, AccumulatedLighting, 1)]
         _LightingCalculationMode ("Lighting Calculation", Float) = 0
         _NewGIColorStrength ("GI Color Strength (New)", Range(0, 1)) = 1
@@ -600,6 +602,45 @@ Shader "Universal Render Pipeline/URPLLToonBG"
         }
 
 
+        Pass
+        {
+            Name "SurfaceBlurDirection"
+            Tags { "LightMode" = "LLSurfaceBlurDirection" }
+            Cull [_Cull]
+            ZTest Equal
+            ZWrite Off
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma vertex LLDirectionVertex
+            #pragma fragment LLDirectionFragment
+            #pragma multi_compile_instancing
+            #pragma shader_feature_local_fragment ENABLE_ALPHA_CLIPPING
+            #include "LLToonInput.hlsl"
+            #include "LLSurfaceBlurDirection.hlsl"
+            struct LLDirAttributes { float4 positionOS : POSITION; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct LLDirVaryings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float2 uv : TEXCOORD1; UNITY_VERTEX_INPUT_INSTANCE_ID UNITY_VERTEX_OUTPUT_STEREO };
+            LLDirVaryings LLDirectionVertex(LLDirAttributes input)
+            {
+                LLDirVaryings output = (LLDirVaryings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+                output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                output.positionCS = TransformWorldToHClip(output.positionWS);
+                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                return output;
+            }
+            float4 LLDirectionFragment(LLDirVaryings input) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                #if defined(ENABLE_ALPHA_CLIPPING)
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a * _BaseColor.a - _Cutoff);
+                #endif
+                return LLSurfaceBlurDirection(input.positionWS);
+            }
+            ENDHLSL
+        }
         Pass
         {
             Name "DepthColorAdjustShadowMask"

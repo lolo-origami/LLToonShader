@@ -205,3 +205,5 @@ float _NewRimLightStrength;
 
 float _NewGIColorStrength;
 float _NewGILightStrength;
+float4 _SurfaceBlurAxis;
+float _EnableSurfaceBlur;
