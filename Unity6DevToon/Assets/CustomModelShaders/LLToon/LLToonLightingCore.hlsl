@@ -278,10 +278,10 @@ void LLToonLightingAccumulated(
 
     // --- GI
     BRDFData giBRDFData = brdfData;
-    giBRDFData.specular *= pbrStrength;
-    giBRDFData.grazingTerm *= pbrStrength;
     float3 giDiffuse, giReflection;
     CalculateLLGISplit(inputData, giBRDFData, brdfDataClearCoat, surfaceData, mainLight, maskGI, giDiffuse, giReflection);
+    // Fade the complete environment reflection, independently of diffuse GI.
+    giReflection *= pbrStrength;
     o.GIColor = 0;
     half4 reflectionColor = 0;
 

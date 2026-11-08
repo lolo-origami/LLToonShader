@@ -17,7 +17,6 @@ Shader "Universal Render Pipeline/LLToonTerrain"
         _LightingCalculationMode ("Lighting Calculation", Float) = 0
         _NewGIColorStrength ("GI Color Strength (New)", Range(0, 1)) = 1
         _NewGILightStrength ("GI Light Strength (New)", Float) = 0.125
-        _GIReflectionStrength ("GI Reflection Strength", Range(0, 1)) = 1
         _NewDiffuseColorStrength ("Diffuse Color Strength (New)", Range(0, 1)) = 1
         _NewDiffuseLightStrength ("Diffuse Light Strength (New)", Float) = 1
         _NewSpecularColorStrength ("Specular Color Strength (New)", Range(0, 1)) = 1

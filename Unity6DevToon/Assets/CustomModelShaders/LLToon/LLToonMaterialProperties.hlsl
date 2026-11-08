@@ -214,4 +214,3 @@ float _DistanceMipBias;
 float _DistanceMipStart;
 float _DistanceMipEnd;
 
-float _GIReflectionStrength;

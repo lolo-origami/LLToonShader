@@ -1248,9 +1248,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 if (NewGILightStrengthProp != null)
                 {
                     materialEditor.ShaderProperty(NewGILightStrengthProp, "GI Light Strength");
-                    var giReflectionStrength = FindProperty("_GIReflectionStrength", properties, false);
-                    if (giReflectionStrength != null)
-                        materialEditor.ShaderProperty(giReflectionStrength, new GUIContent("GI Reflection Strength", "Environment reflection only. 0 disables reflection; 1 preserves the original amount. Diffuse GI is unchanged."));
                 }
             }
 
